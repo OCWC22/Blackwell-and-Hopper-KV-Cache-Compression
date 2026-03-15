@@ -65,6 +65,8 @@ Mirrored skills should exist in `.claude/skills/` after running the sync script:
 - `modelopt-nvfp4-quantization`
 - `promotion-policy`
 - `b200-architecture`
+- `nvfp4-format-reference`
+- `kvtc-algorithm-reference`
 
 ## Subagents
 

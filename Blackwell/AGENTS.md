@@ -78,6 +78,8 @@ These repo-local skills live under `.agents/skills/`.
 - `modelopt-nvfp4-quantization`: ModelOpt quantization recipes, NVFP4 KV cache config, TensorRT-LLM export
 - `promotion-policy`: tier promotion design, protected tokens, eager vs demand promotion, hit/miss logging
 - `b200-architecture`: B200 hardware specs, ISA details, tensor core throughput, memory hierarchy, first-principles reasoning for KV cache
+- `nvfp4-format-reference`: E2M1 bit layout, quantization and dequantization formulas, microscaling math, NVFP4 vs MXFP4 comparison, error analysis, limitations
+- `kvtc-algorithm-reference`: PCA/SVD calibration procedure, DP bit allocation algorithm, entropy coding, protected token ablation, quality results, paper limitations
 
 ## Repo-Local Agent Roles
 
@@ -105,6 +107,8 @@ Codex role files live in `.codex/agents/`. Claude subagents live in `.claude/age
 - Use `modelopt-nvfp4-quantization` when the task is about ModelOpt quantization, NVFP4 KV config, calibration datasets, or TensorRT-LLM checkpoint export.
 - Use `promotion-policy` when the task is about tier promotion design, protected token policies, eager vs demand strategies, or hit/miss rate logging.
 - Use `b200-architecture` when the task needs hardware specs, bandwidth budgets, KV cache sizing estimates, promotion cost calculations, or first-principles reasoning about B200 performance.
+- Use `nvfp4-format-reference` when the task needs E2M1 representable values, quantization or dequantization formulas, microscaling math, NVFP4 vs MXFP4 first-principles comparison, or error analysis.
+- Use `kvtc-algorithm-reference` when the task needs PCA calibration details, DP bit allocation algorithm math, compression ratio analysis, quality benchmarks from the paper, or understanding KVTC limitations.
 
 ## Research And Source Rules
 
