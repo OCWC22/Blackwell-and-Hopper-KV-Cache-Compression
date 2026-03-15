@@ -1,0 +1,2410 @@
+{
+  "analysis_type": "recompute_vs_load_crossover",
+  "timestamp": "2026-03-15T22:31:35.345659+00:00",
+  "filters": {
+    "block_size": 32,
+    "dtype": null
+  },
+  "crossovers": [
+    {
+      "recompute_batch_size": 1,
+      "load_concurrent_blocks": 1,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0482,
+      "load_aggregate_bw_gbps": 32.62,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768,
+        131072
+      ],
+      "recompute_per_block_ms": [
+        449.8343,
+        425.5424,
+        445.2341,
+        433.026,
+        436.5467,
+        504.8761,
+        861.8487
+      ]
+    },
+    {
+      "recompute_batch_size": 1,
+      "load_concurrent_blocks": 1,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0344,
+      "load_aggregate_bw_gbps": 22.87,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768,
+        131072
+      ],
+      "recompute_per_block_ms": [
+        449.8343,
+        425.5424,
+        445.2341,
+        433.026,
+        436.5467,
+        504.8761,
+        861.8487
+      ]
+    },
+    {
+      "recompute_batch_size": 1,
+      "load_concurrent_blocks": 2,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0395,
+      "load_aggregate_bw_gbps": 39.79,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768,
+        131072
+      ],
+      "recompute_per_block_ms": [
+        449.8343,
+        425.5424,
+        445.2341,
+        433.026,
+        436.5467,
+        504.8761,
+        861.8487
+      ]
+    },
+    {
+      "recompute_batch_size": 1,
+      "load_concurrent_blocks": 2,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0264,
+      "load_aggregate_bw_gbps": 29.78,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768,
+        131072
+      ],
+      "recompute_per_block_ms": [
+        449.8343,
+        425.5424,
+        445.2341,
+        433.026,
+        436.5467,
+        504.8761,
+        861.8487
+      ]
+    },
+    {
+      "recompute_batch_size": 1,
+      "load_concurrent_blocks": 4,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0354,
+      "load_aggregate_bw_gbps": 44.42,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768,
+        131072
+      ],
+      "recompute_per_block_ms": [
+        449.8343,
+        425.5424,
+        445.2341,
+        433.026,
+        436.5467,
+        504.8761,
+        861.8487
+      ]
+    },
+    {
+      "recompute_batch_size": 1,
+      "load_concurrent_blocks": 4,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0216,
+      "load_aggregate_bw_gbps": 36.46,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768,
+        131072
+      ],
+      "recompute_per_block_ms": [
+        449.8343,
+        425.5424,
+        445.2341,
+        433.026,
+        436.5467,
+        504.8761,
+        861.8487
+      ]
+    },
+    {
+      "recompute_batch_size": 1,
+      "load_concurrent_blocks": 8,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0331,
+      "load_aggregate_bw_gbps": 47.47,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768,
+        131072
+      ],
+      "recompute_per_block_ms": [
+        449.8343,
+        425.5424,
+        445.2341,
+        433.026,
+        436.5467,
+        504.8761,
+        861.8487
+      ]
+    },
+    {
+      "recompute_batch_size": 1,
+      "load_concurrent_blocks": 8,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0192,
+      "load_aggregate_bw_gbps": 41.0,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768,
+        131072
+      ],
+      "recompute_per_block_ms": [
+        449.8343,
+        425.5424,
+        445.2341,
+        433.026,
+        436.5467,
+        504.8761,
+        861.8487
+      ]
+    },
+    {
+      "recompute_batch_size": 1,
+      "load_concurrent_blocks": 16,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0322,
+      "load_aggregate_bw_gbps": 48.81,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768,
+        131072
+      ],
+      "recompute_per_block_ms": [
+        449.8343,
+        425.5424,
+        445.2341,
+        433.026,
+        436.5467,
+        504.8761,
+        861.8487
+      ]
+    },
+    {
+      "recompute_batch_size": 1,
+      "load_concurrent_blocks": 16,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.018,
+      "load_aggregate_bw_gbps": 43.59,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768,
+        131072
+      ],
+      "recompute_per_block_ms": [
+        449.8343,
+        425.5424,
+        445.2341,
+        433.026,
+        436.5467,
+        504.8761,
+        861.8487
+      ]
+    },
+    {
+      "recompute_batch_size": 1,
+      "load_concurrent_blocks": 32,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0318,
+      "load_aggregate_bw_gbps": 49.49,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768,
+        131072
+      ],
+      "recompute_per_block_ms": [
+        449.8343,
+        425.5424,
+        445.2341,
+        433.026,
+        436.5467,
+        504.8761,
+        861.8487
+      ]
+    },
+    {
+      "recompute_batch_size": 1,
+      "load_concurrent_blocks": 32,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0176,
+      "load_aggregate_bw_gbps": 44.69,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768,
+        131072
+      ],
+      "recompute_per_block_ms": [
+        449.8343,
+        425.5424,
+        445.2341,
+        433.026,
+        436.5467,
+        504.8761,
+        861.8487
+      ]
+    },
+    {
+      "recompute_batch_size": 1,
+      "load_concurrent_blocks": 64,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0317,
+      "load_aggregate_bw_gbps": 49.67,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768,
+        131072
+      ],
+      "recompute_per_block_ms": [
+        449.8343,
+        425.5424,
+        445.2341,
+        433.026,
+        436.5467,
+        504.8761,
+        861.8487
+      ]
+    },
+    {
+      "recompute_batch_size": 1,
+      "load_concurrent_blocks": 64,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0175,
+      "load_aggregate_bw_gbps": 45.03,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768,
+        131072
+      ],
+      "recompute_per_block_ms": [
+        449.8343,
+        425.5424,
+        445.2341,
+        433.026,
+        436.5467,
+        504.8761,
+        861.8487
+      ]
+    },
+    {
+      "recompute_batch_size": 1,
+      "load_concurrent_blocks": 128,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0317,
+      "load_aggregate_bw_gbps": 49.68,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768,
+        131072
+      ],
+      "recompute_per_block_ms": [
+        449.8343,
+        425.5424,
+        445.2341,
+        433.026,
+        436.5467,
+        504.8761,
+        861.8487
+      ]
+    },
+    {
+      "recompute_batch_size": 1,
+      "load_concurrent_blocks": 128,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0173,
+      "load_aggregate_bw_gbps": 45.45,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768,
+        131072
+      ],
+      "recompute_per_block_ms": [
+        449.8343,
+        425.5424,
+        445.2341,
+        433.026,
+        436.5467,
+        504.8761,
+        861.8487
+      ]
+    },
+    {
+      "recompute_batch_size": 2,
+      "load_concurrent_blocks": 1,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0482,
+      "load_aggregate_bw_gbps": 32.62,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        269.3781,
+        264.0239,
+        268.1827,
+        257.4825,
+        264.5456,
+        315.1297
+      ]
+    },
+    {
+      "recompute_batch_size": 2,
+      "load_concurrent_blocks": 1,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0344,
+      "load_aggregate_bw_gbps": 22.87,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        269.3781,
+        264.0239,
+        268.1827,
+        257.4825,
+        264.5456,
+        315.1297
+      ]
+    },
+    {
+      "recompute_batch_size": 2,
+      "load_concurrent_blocks": 2,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0395,
+      "load_aggregate_bw_gbps": 39.79,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        269.3781,
+        264.0239,
+        268.1827,
+        257.4825,
+        264.5456,
+        315.1297
+      ]
+    },
+    {
+      "recompute_batch_size": 2,
+      "load_concurrent_blocks": 2,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0264,
+      "load_aggregate_bw_gbps": 29.78,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        269.3781,
+        264.0239,
+        268.1827,
+        257.4825,
+        264.5456,
+        315.1297
+      ]
+    },
+    {
+      "recompute_batch_size": 2,
+      "load_concurrent_blocks": 4,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0354,
+      "load_aggregate_bw_gbps": 44.42,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        269.3781,
+        264.0239,
+        268.1827,
+        257.4825,
+        264.5456,
+        315.1297
+      ]
+    },
+    {
+      "recompute_batch_size": 2,
+      "load_concurrent_blocks": 4,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0216,
+      "load_aggregate_bw_gbps": 36.46,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        269.3781,
+        264.0239,
+        268.1827,
+        257.4825,
+        264.5456,
+        315.1297
+      ]
+    },
+    {
+      "recompute_batch_size": 2,
+      "load_concurrent_blocks": 8,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0331,
+      "load_aggregate_bw_gbps": 47.47,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        269.3781,
+        264.0239,
+        268.1827,
+        257.4825,
+        264.5456,
+        315.1297
+      ]
+    },
+    {
+      "recompute_batch_size": 2,
+      "load_concurrent_blocks": 8,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0192,
+      "load_aggregate_bw_gbps": 41.0,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        269.3781,
+        264.0239,
+        268.1827,
+        257.4825,
+        264.5456,
+        315.1297
+      ]
+    },
+    {
+      "recompute_batch_size": 2,
+      "load_concurrent_blocks": 16,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0322,
+      "load_aggregate_bw_gbps": 48.81,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        269.3781,
+        264.0239,
+        268.1827,
+        257.4825,
+        264.5456,
+        315.1297
+      ]
+    },
+    {
+      "recompute_batch_size": 2,
+      "load_concurrent_blocks": 16,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.018,
+      "load_aggregate_bw_gbps": 43.59,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        269.3781,
+        264.0239,
+        268.1827,
+        257.4825,
+        264.5456,
+        315.1297
+      ]
+    },
+    {
+      "recompute_batch_size": 2,
+      "load_concurrent_blocks": 32,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0318,
+      "load_aggregate_bw_gbps": 49.49,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        269.3781,
+        264.0239,
+        268.1827,
+        257.4825,
+        264.5456,
+        315.1297
+      ]
+    },
+    {
+      "recompute_batch_size": 2,
+      "load_concurrent_blocks": 32,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0176,
+      "load_aggregate_bw_gbps": 44.69,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        269.3781,
+        264.0239,
+        268.1827,
+        257.4825,
+        264.5456,
+        315.1297
+      ]
+    },
+    {
+      "recompute_batch_size": 2,
+      "load_concurrent_blocks": 64,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0317,
+      "load_aggregate_bw_gbps": 49.67,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        269.3781,
+        264.0239,
+        268.1827,
+        257.4825,
+        264.5456,
+        315.1297
+      ]
+    },
+    {
+      "recompute_batch_size": 2,
+      "load_concurrent_blocks": 64,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0175,
+      "load_aggregate_bw_gbps": 45.03,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        269.3781,
+        264.0239,
+        268.1827,
+        257.4825,
+        264.5456,
+        315.1297
+      ]
+    },
+    {
+      "recompute_batch_size": 2,
+      "load_concurrent_blocks": 128,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0317,
+      "load_aggregate_bw_gbps": 49.68,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        269.3781,
+        264.0239,
+        268.1827,
+        257.4825,
+        264.5456,
+        315.1297
+      ]
+    },
+    {
+      "recompute_batch_size": 2,
+      "load_concurrent_blocks": 128,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0173,
+      "load_aggregate_bw_gbps": 45.45,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        269.3781,
+        264.0239,
+        268.1827,
+        257.4825,
+        264.5456,
+        315.1297
+      ]
+    },
+    {
+      "recompute_batch_size": 4,
+      "load_concurrent_blocks": 1,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0482,
+      "load_aggregate_bw_gbps": 32.62,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        161.5234,
+        151.9725,
+        151.2627,
+        153.4755,
+        160.6988,
+        196.2854
+      ]
+    },
+    {
+      "recompute_batch_size": 4,
+      "load_concurrent_blocks": 1,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0344,
+      "load_aggregate_bw_gbps": 22.87,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        161.5234,
+        151.9725,
+        151.2627,
+        153.4755,
+        160.6988,
+        196.2854
+      ]
+    },
+    {
+      "recompute_batch_size": 4,
+      "load_concurrent_blocks": 2,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0395,
+      "load_aggregate_bw_gbps": 39.79,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        161.5234,
+        151.9725,
+        151.2627,
+        153.4755,
+        160.6988,
+        196.2854
+      ]
+    },
+    {
+      "recompute_batch_size": 4,
+      "load_concurrent_blocks": 2,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0264,
+      "load_aggregate_bw_gbps": 29.78,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        161.5234,
+        151.9725,
+        151.2627,
+        153.4755,
+        160.6988,
+        196.2854
+      ]
+    },
+    {
+      "recompute_batch_size": 4,
+      "load_concurrent_blocks": 4,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0354,
+      "load_aggregate_bw_gbps": 44.42,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        161.5234,
+        151.9725,
+        151.2627,
+        153.4755,
+        160.6988,
+        196.2854
+      ]
+    },
+    {
+      "recompute_batch_size": 4,
+      "load_concurrent_blocks": 4,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0216,
+      "load_aggregate_bw_gbps": 36.46,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        161.5234,
+        151.9725,
+        151.2627,
+        153.4755,
+        160.6988,
+        196.2854
+      ]
+    },
+    {
+      "recompute_batch_size": 4,
+      "load_concurrent_blocks": 8,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0331,
+      "load_aggregate_bw_gbps": 47.47,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        161.5234,
+        151.9725,
+        151.2627,
+        153.4755,
+        160.6988,
+        196.2854
+      ]
+    },
+    {
+      "recompute_batch_size": 4,
+      "load_concurrent_blocks": 8,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0192,
+      "load_aggregate_bw_gbps": 41.0,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        161.5234,
+        151.9725,
+        151.2627,
+        153.4755,
+        160.6988,
+        196.2854
+      ]
+    },
+    {
+      "recompute_batch_size": 4,
+      "load_concurrent_blocks": 16,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0322,
+      "load_aggregate_bw_gbps": 48.81,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        161.5234,
+        151.9725,
+        151.2627,
+        153.4755,
+        160.6988,
+        196.2854
+      ]
+    },
+    {
+      "recompute_batch_size": 4,
+      "load_concurrent_blocks": 16,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.018,
+      "load_aggregate_bw_gbps": 43.59,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        161.5234,
+        151.9725,
+        151.2627,
+        153.4755,
+        160.6988,
+        196.2854
+      ]
+    },
+    {
+      "recompute_batch_size": 4,
+      "load_concurrent_blocks": 32,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0318,
+      "load_aggregate_bw_gbps": 49.49,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        161.5234,
+        151.9725,
+        151.2627,
+        153.4755,
+        160.6988,
+        196.2854
+      ]
+    },
+    {
+      "recompute_batch_size": 4,
+      "load_concurrent_blocks": 32,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0176,
+      "load_aggregate_bw_gbps": 44.69,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        161.5234,
+        151.9725,
+        151.2627,
+        153.4755,
+        160.6988,
+        196.2854
+      ]
+    },
+    {
+      "recompute_batch_size": 4,
+      "load_concurrent_blocks": 64,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0317,
+      "load_aggregate_bw_gbps": 49.67,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        161.5234,
+        151.9725,
+        151.2627,
+        153.4755,
+        160.6988,
+        196.2854
+      ]
+    },
+    {
+      "recompute_batch_size": 4,
+      "load_concurrent_blocks": 64,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0175,
+      "load_aggregate_bw_gbps": 45.03,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        161.5234,
+        151.9725,
+        151.2627,
+        153.4755,
+        160.6988,
+        196.2854
+      ]
+    },
+    {
+      "recompute_batch_size": 4,
+      "load_concurrent_blocks": 128,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0317,
+      "load_aggregate_bw_gbps": 49.68,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        161.5234,
+        151.9725,
+        151.2627,
+        153.4755,
+        160.6988,
+        196.2854
+      ]
+    },
+    {
+      "recompute_batch_size": 4,
+      "load_concurrent_blocks": 128,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0173,
+      "load_aggregate_bw_gbps": 45.45,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192,
+        32768
+      ],
+      "recompute_per_block_ms": [
+        161.5234,
+        151.9725,
+        151.2627,
+        153.4755,
+        160.6988,
+        196.2854
+      ]
+    },
+    {
+      "recompute_batch_size": 8,
+      "load_concurrent_blocks": 1,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0482,
+      "load_aggregate_bw_gbps": 32.62,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        90.7908,
+        87.1878,
+        83.7769,
+        84.8825,
+        93.9649
+      ]
+    },
+    {
+      "recompute_batch_size": 8,
+      "load_concurrent_blocks": 1,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0344,
+      "load_aggregate_bw_gbps": 22.87,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        90.7908,
+        87.1878,
+        83.7769,
+        84.8825,
+        93.9649
+      ]
+    },
+    {
+      "recompute_batch_size": 8,
+      "load_concurrent_blocks": 2,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0395,
+      "load_aggregate_bw_gbps": 39.79,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        90.7908,
+        87.1878,
+        83.7769,
+        84.8825,
+        93.9649
+      ]
+    },
+    {
+      "recompute_batch_size": 8,
+      "load_concurrent_blocks": 2,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0264,
+      "load_aggregate_bw_gbps": 29.78,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        90.7908,
+        87.1878,
+        83.7769,
+        84.8825,
+        93.9649
+      ]
+    },
+    {
+      "recompute_batch_size": 8,
+      "load_concurrent_blocks": 4,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0354,
+      "load_aggregate_bw_gbps": 44.42,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        90.7908,
+        87.1878,
+        83.7769,
+        84.8825,
+        93.9649
+      ]
+    },
+    {
+      "recompute_batch_size": 8,
+      "load_concurrent_blocks": 4,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0216,
+      "load_aggregate_bw_gbps": 36.46,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        90.7908,
+        87.1878,
+        83.7769,
+        84.8825,
+        93.9649
+      ]
+    },
+    {
+      "recompute_batch_size": 8,
+      "load_concurrent_blocks": 8,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0331,
+      "load_aggregate_bw_gbps": 47.47,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        90.7908,
+        87.1878,
+        83.7769,
+        84.8825,
+        93.9649
+      ]
+    },
+    {
+      "recompute_batch_size": 8,
+      "load_concurrent_blocks": 8,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0192,
+      "load_aggregate_bw_gbps": 41.0,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        90.7908,
+        87.1878,
+        83.7769,
+        84.8825,
+        93.9649
+      ]
+    },
+    {
+      "recompute_batch_size": 8,
+      "load_concurrent_blocks": 16,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0322,
+      "load_aggregate_bw_gbps": 48.81,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        90.7908,
+        87.1878,
+        83.7769,
+        84.8825,
+        93.9649
+      ]
+    },
+    {
+      "recompute_batch_size": 8,
+      "load_concurrent_blocks": 16,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.018,
+      "load_aggregate_bw_gbps": 43.59,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        90.7908,
+        87.1878,
+        83.7769,
+        84.8825,
+        93.9649
+      ]
+    },
+    {
+      "recompute_batch_size": 8,
+      "load_concurrent_blocks": 32,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0318,
+      "load_aggregate_bw_gbps": 49.49,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        90.7908,
+        87.1878,
+        83.7769,
+        84.8825,
+        93.9649
+      ]
+    },
+    {
+      "recompute_batch_size": 8,
+      "load_concurrent_blocks": 32,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0176,
+      "load_aggregate_bw_gbps": 44.69,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        90.7908,
+        87.1878,
+        83.7769,
+        84.8825,
+        93.9649
+      ]
+    },
+    {
+      "recompute_batch_size": 8,
+      "load_concurrent_blocks": 64,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0317,
+      "load_aggregate_bw_gbps": 49.67,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        90.7908,
+        87.1878,
+        83.7769,
+        84.8825,
+        93.9649
+      ]
+    },
+    {
+      "recompute_batch_size": 8,
+      "load_concurrent_blocks": 64,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0175,
+      "load_aggregate_bw_gbps": 45.03,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        90.7908,
+        87.1878,
+        83.7769,
+        84.8825,
+        93.9649
+      ]
+    },
+    {
+      "recompute_batch_size": 8,
+      "load_concurrent_blocks": 128,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0317,
+      "load_aggregate_bw_gbps": 49.68,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        90.7908,
+        87.1878,
+        83.7769,
+        84.8825,
+        93.9649
+      ]
+    },
+    {
+      "recompute_batch_size": 8,
+      "load_concurrent_blocks": 128,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0173,
+      "load_aggregate_bw_gbps": 45.45,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        90.7908,
+        87.1878,
+        83.7769,
+        84.8825,
+        93.9649
+      ]
+    },
+    {
+      "recompute_batch_size": 16,
+      "load_concurrent_blocks": 1,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0482,
+      "load_aggregate_bw_gbps": 32.62,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        50.8305,
+        47.0724,
+        45.3405,
+        47.8642,
+        57.889
+      ]
+    },
+    {
+      "recompute_batch_size": 16,
+      "load_concurrent_blocks": 1,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0344,
+      "load_aggregate_bw_gbps": 22.87,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        50.8305,
+        47.0724,
+        45.3405,
+        47.8642,
+        57.889
+      ]
+    },
+    {
+      "recompute_batch_size": 16,
+      "load_concurrent_blocks": 2,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0395,
+      "load_aggregate_bw_gbps": 39.79,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        50.8305,
+        47.0724,
+        45.3405,
+        47.8642,
+        57.889
+      ]
+    },
+    {
+      "recompute_batch_size": 16,
+      "load_concurrent_blocks": 2,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0264,
+      "load_aggregate_bw_gbps": 29.78,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        50.8305,
+        47.0724,
+        45.3405,
+        47.8642,
+        57.889
+      ]
+    },
+    {
+      "recompute_batch_size": 16,
+      "load_concurrent_blocks": 4,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0354,
+      "load_aggregate_bw_gbps": 44.42,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        50.8305,
+        47.0724,
+        45.3405,
+        47.8642,
+        57.889
+      ]
+    },
+    {
+      "recompute_batch_size": 16,
+      "load_concurrent_blocks": 4,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0216,
+      "load_aggregate_bw_gbps": 36.46,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        50.8305,
+        47.0724,
+        45.3405,
+        47.8642,
+        57.889
+      ]
+    },
+    {
+      "recompute_batch_size": 16,
+      "load_concurrent_blocks": 8,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0331,
+      "load_aggregate_bw_gbps": 47.47,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        50.8305,
+        47.0724,
+        45.3405,
+        47.8642,
+        57.889
+      ]
+    },
+    {
+      "recompute_batch_size": 16,
+      "load_concurrent_blocks": 8,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0192,
+      "load_aggregate_bw_gbps": 41.0,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        50.8305,
+        47.0724,
+        45.3405,
+        47.8642,
+        57.889
+      ]
+    },
+    {
+      "recompute_batch_size": 16,
+      "load_concurrent_blocks": 16,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0322,
+      "load_aggregate_bw_gbps": 48.81,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        50.8305,
+        47.0724,
+        45.3405,
+        47.8642,
+        57.889
+      ]
+    },
+    {
+      "recompute_batch_size": 16,
+      "load_concurrent_blocks": 16,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.018,
+      "load_aggregate_bw_gbps": 43.59,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        50.8305,
+        47.0724,
+        45.3405,
+        47.8642,
+        57.889
+      ]
+    },
+    {
+      "recompute_batch_size": 16,
+      "load_concurrent_blocks": 32,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0318,
+      "load_aggregate_bw_gbps": 49.49,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        50.8305,
+        47.0724,
+        45.3405,
+        47.8642,
+        57.889
+      ]
+    },
+    {
+      "recompute_batch_size": 16,
+      "load_concurrent_blocks": 32,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0176,
+      "load_aggregate_bw_gbps": 44.69,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        50.8305,
+        47.0724,
+        45.3405,
+        47.8642,
+        57.889
+      ]
+    },
+    {
+      "recompute_batch_size": 16,
+      "load_concurrent_blocks": 64,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0317,
+      "load_aggregate_bw_gbps": 49.67,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        50.8305,
+        47.0724,
+        45.3405,
+        47.8642,
+        57.889
+      ]
+    },
+    {
+      "recompute_batch_size": 16,
+      "load_concurrent_blocks": 64,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0175,
+      "load_aggregate_bw_gbps": 45.03,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        50.8305,
+        47.0724,
+        45.3405,
+        47.8642,
+        57.889
+      ]
+    },
+    {
+      "recompute_batch_size": 16,
+      "load_concurrent_blocks": 128,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0317,
+      "load_aggregate_bw_gbps": 49.68,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        50.8305,
+        47.0724,
+        45.3405,
+        47.8642,
+        57.889
+      ]
+    },
+    {
+      "recompute_batch_size": 16,
+      "load_concurrent_blocks": 128,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0173,
+      "load_aggregate_bw_gbps": 45.45,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048,
+        8192
+      ],
+      "recompute_per_block_ms": [
+        50.8305,
+        47.0724,
+        45.3405,
+        47.8642,
+        57.889
+      ]
+    },
+    {
+      "recompute_batch_size": 32,
+      "load_concurrent_blocks": 1,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0482,
+      "load_aggregate_bw_gbps": 32.62,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048
+      ],
+      "recompute_per_block_ms": [
+        30.8979,
+        26.1663,
+        25.6049,
+        28.0124
+      ]
+    },
+    {
+      "recompute_batch_size": 32,
+      "load_concurrent_blocks": 1,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0344,
+      "load_aggregate_bw_gbps": 22.87,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048
+      ],
+      "recompute_per_block_ms": [
+        30.8979,
+        26.1663,
+        25.6049,
+        28.0124
+      ]
+    },
+    {
+      "recompute_batch_size": 32,
+      "load_concurrent_blocks": 2,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0395,
+      "load_aggregate_bw_gbps": 39.79,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048
+      ],
+      "recompute_per_block_ms": [
+        30.8979,
+        26.1663,
+        25.6049,
+        28.0124
+      ]
+    },
+    {
+      "recompute_batch_size": 32,
+      "load_concurrent_blocks": 2,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0264,
+      "load_aggregate_bw_gbps": 29.78,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048
+      ],
+      "recompute_per_block_ms": [
+        30.8979,
+        26.1663,
+        25.6049,
+        28.0124
+      ]
+    },
+    {
+      "recompute_batch_size": 32,
+      "load_concurrent_blocks": 4,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0354,
+      "load_aggregate_bw_gbps": 44.42,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048
+      ],
+      "recompute_per_block_ms": [
+        30.8979,
+        26.1663,
+        25.6049,
+        28.0124
+      ]
+    },
+    {
+      "recompute_batch_size": 32,
+      "load_concurrent_blocks": 4,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0216,
+      "load_aggregate_bw_gbps": 36.46,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048
+      ],
+      "recompute_per_block_ms": [
+        30.8979,
+        26.1663,
+        25.6049,
+        28.0124
+      ]
+    },
+    {
+      "recompute_batch_size": 32,
+      "load_concurrent_blocks": 8,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0331,
+      "load_aggregate_bw_gbps": 47.47,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048
+      ],
+      "recompute_per_block_ms": [
+        30.8979,
+        26.1663,
+        25.6049,
+        28.0124
+      ]
+    },
+    {
+      "recompute_batch_size": 32,
+      "load_concurrent_blocks": 8,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0192,
+      "load_aggregate_bw_gbps": 41.0,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048
+      ],
+      "recompute_per_block_ms": [
+        30.8979,
+        26.1663,
+        25.6049,
+        28.0124
+      ]
+    },
+    {
+      "recompute_batch_size": 32,
+      "load_concurrent_blocks": 16,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0322,
+      "load_aggregate_bw_gbps": 48.81,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048
+      ],
+      "recompute_per_block_ms": [
+        30.8979,
+        26.1663,
+        25.6049,
+        28.0124
+      ]
+    },
+    {
+      "recompute_batch_size": 32,
+      "load_concurrent_blocks": 16,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.018,
+      "load_aggregate_bw_gbps": 43.59,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048
+      ],
+      "recompute_per_block_ms": [
+        30.8979,
+        26.1663,
+        25.6049,
+        28.0124
+      ]
+    },
+    {
+      "recompute_batch_size": 32,
+      "load_concurrent_blocks": 32,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0318,
+      "load_aggregate_bw_gbps": 49.49,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048
+      ],
+      "recompute_per_block_ms": [
+        30.8979,
+        26.1663,
+        25.6049,
+        28.0124
+      ]
+    },
+    {
+      "recompute_batch_size": 32,
+      "load_concurrent_blocks": 32,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0176,
+      "load_aggregate_bw_gbps": 44.69,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048
+      ],
+      "recompute_per_block_ms": [
+        30.8979,
+        26.1663,
+        25.6049,
+        28.0124
+      ]
+    },
+    {
+      "recompute_batch_size": 32,
+      "load_concurrent_blocks": 64,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0317,
+      "load_aggregate_bw_gbps": 49.67,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048
+      ],
+      "recompute_per_block_ms": [
+        30.8979,
+        26.1663,
+        25.6049,
+        28.0124
+      ]
+    },
+    {
+      "recompute_batch_size": 32,
+      "load_concurrent_blocks": 64,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0175,
+      "load_aggregate_bw_gbps": 45.03,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048
+      ],
+      "recompute_per_block_ms": [
+        30.8979,
+        26.1663,
+        25.6049,
+        28.0124
+      ]
+    },
+    {
+      "recompute_batch_size": 32,
+      "load_concurrent_blocks": 128,
+      "load_dtype": "fp16",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0317,
+      "load_aggregate_bw_gbps": 49.68,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048
+      ],
+      "recompute_per_block_ms": [
+        30.8979,
+        26.1663,
+        25.6049,
+        28.0124
+      ]
+    },
+    {
+      "recompute_batch_size": 32,
+      "load_concurrent_blocks": 128,
+      "load_dtype": "fp8",
+      "block_tokens": 32,
+      "load_per_block_ms": 0.0173,
+      "load_aggregate_bw_gbps": 45.45,
+      "crossover_position": 0,
+      "policy": "always_load",
+      "positions": [
+        32,
+        128,
+        512,
+        2048
+      ],
+      "recompute_per_block_ms": [
+        30.8979,
+        26.1663,
+        25.6049,
+        28.0124
+      ]
+    }
+  ]
+}

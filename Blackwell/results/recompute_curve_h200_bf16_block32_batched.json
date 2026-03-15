@@ -1,0 +1,610 @@
+{
+  "sweep_type": "recompute_cost",
+  "timestamp": "2026-03-15T22:31:25.927386+00:00",
+  "config": {
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "engine": "torch",
+    "kv_mode": "bf16",
+    "block_size_tokens": 32,
+    "batch_sizes": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32
+    ],
+    "warmup_iters": 1,
+    "measure_iters": 3,
+    "tp": 1,
+    "max_seq_len": 131104
+  },
+  "hardware": {
+    "gpu_name": "NVIDIA H200",
+    "gpu_count": 8,
+    "driver_version": "590.48.01",
+    "cuda_version": "13.1"
+  },
+  "measurements": [
+    {
+      "context_position": 32,
+      "block_size_tokens": 32,
+      "batch_size": 1,
+      "total_batch_ms_mean": 449.8343,
+      "total_batch_ms_min": 432.0868,
+      "total_batch_ms_max": 459.1339,
+      "per_block_ms_mean": 449.8343,
+      "per_block_ms_min": 432.0868,
+      "per_block_ms_max": 459.1339,
+      "per_token_ms_mean": 14.0573,
+      "individual_runs_ms": [
+        432.0868,
+        458.2823,
+        459.1339
+      ]
+    },
+    {
+      "context_position": 32,
+      "block_size_tokens": 32,
+      "batch_size": 2,
+      "total_batch_ms_mean": 538.7562,
+      "total_batch_ms_min": 511.6531,
+      "total_batch_ms_max": 552.3646,
+      "per_block_ms_mean": 269.3781,
+      "per_block_ms_min": 255.8266,
+      "per_block_ms_max": 276.1823,
+      "per_token_ms_mean": 8.4181,
+      "individual_runs_ms": [
+        511.6531,
+        552.3646,
+        552.2509
+      ]
+    },
+    {
+      "context_position": 32,
+      "block_size_tokens": 32,
+      "batch_size": 4,
+      "total_batch_ms_mean": 646.0935,
+      "total_batch_ms_min": 623.3126,
+      "total_batch_ms_max": 660.0762,
+      "per_block_ms_mean": 161.5234,
+      "per_block_ms_min": 155.8281,
+      "per_block_ms_max": 165.019,
+      "per_token_ms_mean": 5.0476,
+      "individual_runs_ms": [
+        623.3126,
+        660.0762,
+        654.8917
+      ]
+    },
+    {
+      "context_position": 32,
+      "block_size_tokens": 32,
+      "batch_size": 8,
+      "total_batch_ms_mean": 726.3264,
+      "total_batch_ms_min": 712.6411,
+      "total_batch_ms_max": 736.1276,
+      "per_block_ms_mean": 90.7908,
+      "per_block_ms_min": 89.0801,
+      "per_block_ms_max": 92.016,
+      "per_token_ms_mean": 2.8372,
+      "individual_runs_ms": [
+        712.6411,
+        736.1276,
+        730.2104
+      ]
+    },
+    {
+      "context_position": 32,
+      "block_size_tokens": 32,
+      "batch_size": 16,
+      "total_batch_ms_mean": 813.2873,
+      "total_batch_ms_min": 797.4532,
+      "total_batch_ms_max": 842.4227,
+      "per_block_ms_mean": 50.8305,
+      "per_block_ms_min": 49.8408,
+      "per_block_ms_max": 52.6514,
+      "per_token_ms_mean": 1.5885,
+      "individual_runs_ms": [
+        842.4227,
+        799.986,
+        797.4532
+      ]
+    },
+    {
+      "context_position": 32,
+      "block_size_tokens": 32,
+      "batch_size": 32,
+      "total_batch_ms_mean": 988.7343,
+      "total_batch_ms_min": 937.8234,
+      "total_batch_ms_max": 1031.5074,
+      "per_block_ms_mean": 30.8979,
+      "per_block_ms_min": 29.307,
+      "per_block_ms_max": 32.2346,
+      "per_token_ms_mean": 0.9656,
+      "individual_runs_ms": [
+        1031.5074,
+        996.8719,
+        937.8234
+      ]
+    },
+    {
+      "context_position": 128,
+      "block_size_tokens": 32,
+      "batch_size": 1,
+      "total_batch_ms_mean": 425.5424,
+      "total_batch_ms_min": 408.8213,
+      "total_batch_ms_max": 438.5101,
+      "per_block_ms_mean": 425.5424,
+      "per_block_ms_min": 408.8213,
+      "per_block_ms_max": 438.5101,
+      "per_token_ms_mean": 13.2982,
+      "individual_runs_ms": [
+        408.8213,
+        429.2959,
+        438.5101
+      ]
+    },
+    {
+      "context_position": 128,
+      "block_size_tokens": 32,
+      "batch_size": 2,
+      "total_batch_ms_mean": 528.0478,
+      "total_batch_ms_min": 505.9082,
+      "total_batch_ms_max": 541.7853,
+      "per_block_ms_mean": 264.0239,
+      "per_block_ms_min": 252.9541,
+      "per_block_ms_max": 270.8926,
+      "per_token_ms_mean": 8.2507,
+      "individual_runs_ms": [
+        505.9082,
+        536.45,
+        541.7853
+      ]
+    },
+    {
+      "context_position": 128,
+      "block_size_tokens": 32,
+      "batch_size": 4,
+      "total_batch_ms_mean": 607.8899,
+      "total_batch_ms_min": 589.1848,
+      "total_batch_ms_max": 618.124,
+      "per_block_ms_mean": 151.9725,
+      "per_block_ms_min": 147.2962,
+      "per_block_ms_max": 154.531,
+      "per_token_ms_mean": 4.7491,
+      "individual_runs_ms": [
+        589.1848,
+        616.3611,
+        618.124
+      ]
+    },
+    {
+      "context_position": 128,
+      "block_size_tokens": 32,
+      "batch_size": 8,
+      "total_batch_ms_mean": 697.5027,
+      "total_batch_ms_min": 678.3661,
+      "total_batch_ms_max": 708.1685,
+      "per_block_ms_mean": 87.1878,
+      "per_block_ms_min": 84.7958,
+      "per_block_ms_max": 88.5211,
+      "per_token_ms_mean": 2.7246,
+      "individual_runs_ms": [
+        678.3661,
+        705.9734,
+        708.1685
+      ]
+    },
+    {
+      "context_position": 128,
+      "block_size_tokens": 32,
+      "batch_size": 16,
+      "total_batch_ms_mean": 753.1584,
+      "total_batch_ms_min": 738.6202,
+      "total_batch_ms_max": 765.0574,
+      "per_block_ms_mean": 47.0724,
+      "per_block_ms_min": 46.1638,
+      "per_block_ms_max": 47.8161,
+      "per_token_ms_mean": 1.471,
+      "individual_runs_ms": [
+        738.6202,
+        765.0574,
+        755.7978
+      ]
+    },
+    {
+      "context_position": 128,
+      "block_size_tokens": 32,
+      "batch_size": 32,
+      "total_batch_ms_mean": 837.323,
+      "total_batch_ms_min": 833.7309,
+      "total_batch_ms_max": 842.1694,
+      "per_block_ms_mean": 26.1663,
+      "per_block_ms_min": 26.0541,
+      "per_block_ms_max": 26.3178,
+      "per_token_ms_mean": 0.8177,
+      "individual_runs_ms": [
+        836.0686,
+        833.7309,
+        842.1694
+      ]
+    },
+    {
+      "context_position": 512,
+      "block_size_tokens": 32,
+      "batch_size": 1,
+      "total_batch_ms_mean": 445.2341,
+      "total_batch_ms_min": 425.9151,
+      "total_batch_ms_max": 457.2802,
+      "per_block_ms_mean": 445.2341,
+      "per_block_ms_min": 425.9151,
+      "per_block_ms_max": 457.2802,
+      "per_token_ms_mean": 13.9136,
+      "individual_runs_ms": [
+        425.9151,
+        452.507,
+        457.2802
+      ]
+    },
+    {
+      "context_position": 512,
+      "block_size_tokens": 32,
+      "batch_size": 2,
+      "total_batch_ms_mean": 536.3654,
+      "total_batch_ms_min": 516.0038,
+      "total_batch_ms_max": 547.3987,
+      "per_block_ms_mean": 268.1827,
+      "per_block_ms_min": 258.0019,
+      "per_block_ms_max": 273.6994,
+      "per_token_ms_mean": 8.3807,
+      "individual_runs_ms": [
+        516.0038,
+        545.6935,
+        547.3987
+      ]
+    },
+    {
+      "context_position": 512,
+      "block_size_tokens": 32,
+      "batch_size": 4,
+      "total_batch_ms_mean": 605.0506,
+      "total_batch_ms_min": 579.9512,
+      "total_batch_ms_max": 619.125,
+      "per_block_ms_mean": 151.2627,
+      "per_block_ms_min": 144.9878,
+      "per_block_ms_max": 154.7812,
+      "per_token_ms_mean": 4.727,
+      "individual_runs_ms": [
+        579.9512,
+        616.0757,
+        619.125
+      ]
+    },
+    {
+      "context_position": 512,
+      "block_size_tokens": 32,
+      "batch_size": 8,
+      "total_batch_ms_mean": 670.2155,
+      "total_batch_ms_min": 647.9935,
+      "total_batch_ms_max": 681.6925,
+      "per_block_ms_mean": 83.7769,
+      "per_block_ms_min": 80.9992,
+      "per_block_ms_max": 85.2116,
+      "per_token_ms_mean": 2.618,
+      "individual_runs_ms": [
+        647.9935,
+        681.6925,
+        680.9606
+      ]
+    },
+    {
+      "context_position": 512,
+      "block_size_tokens": 32,
+      "batch_size": 16,
+      "total_batch_ms_mean": 725.4481,
+      "total_batch_ms_min": 708.0817,
+      "total_batch_ms_max": 734.9214,
+      "per_block_ms_mean": 45.3405,
+      "per_block_ms_min": 44.2551,
+      "per_block_ms_max": 45.9326,
+      "per_token_ms_mean": 1.4169,
+      "individual_runs_ms": [
+        708.0817,
+        733.341,
+        734.9214
+      ]
+    },
+    {
+      "context_position": 512,
+      "block_size_tokens": 32,
+      "batch_size": 32,
+      "total_batch_ms_mean": 819.3566,
+      "total_batch_ms_min": 800.9852,
+      "total_batch_ms_max": 830.1317,
+      "per_block_ms_mean": 25.6049,
+      "per_block_ms_min": 25.0308,
+      "per_block_ms_max": 25.9416,
+      "per_token_ms_mean": 0.8002,
+      "individual_runs_ms": [
+        800.9852,
+        830.1317,
+        826.9528
+      ]
+    },
+    {
+      "context_position": 2048,
+      "block_size_tokens": 32,
+      "batch_size": 1,
+      "total_batch_ms_mean": 433.026,
+      "total_batch_ms_min": 412.4543,
+      "total_batch_ms_max": 449.0392,
+      "per_block_ms_mean": 433.026,
+      "per_block_ms_min": 412.4543,
+      "per_block_ms_max": 449.0392,
+      "per_token_ms_mean": 13.5321,
+      "individual_runs_ms": [
+        412.4543,
+        437.5843,
+        449.0392
+      ]
+    },
+    {
+      "context_position": 2048,
+      "block_size_tokens": 32,
+      "batch_size": 2,
+      "total_batch_ms_mean": 514.9649,
+      "total_batch_ms_min": 500.6207,
+      "total_batch_ms_max": 523.5568,
+      "per_block_ms_mean": 257.4825,
+      "per_block_ms_min": 250.3104,
+      "per_block_ms_max": 261.7784,
+      "per_token_ms_mean": 8.0463,
+      "individual_runs_ms": [
+        500.6207,
+        520.7172,
+        523.5568
+      ]
+    },
+    {
+      "context_position": 2048,
+      "block_size_tokens": 32,
+      "batch_size": 4,
+      "total_batch_ms_mean": 613.902,
+      "total_batch_ms_min": 582.3049,
+      "total_batch_ms_max": 634.1784,
+      "per_block_ms_mean": 153.4755,
+      "per_block_ms_min": 145.5762,
+      "per_block_ms_max": 158.5446,
+      "per_token_ms_mean": 4.7961,
+      "individual_runs_ms": [
+        582.3049,
+        625.2226,
+        634.1784
+      ]
+    },
+    {
+      "context_position": 2048,
+      "block_size_tokens": 32,
+      "batch_size": 8,
+      "total_batch_ms_mean": 679.06,
+      "total_batch_ms_min": 657.06,
+      "total_batch_ms_max": 692.5656,
+      "per_block_ms_mean": 84.8825,
+      "per_block_ms_min": 82.1325,
+      "per_block_ms_max": 86.5707,
+      "per_token_ms_mean": 2.6526,
+      "individual_runs_ms": [
+        657.06,
+        687.5545,
+        692.5656
+      ]
+    },
+    {
+      "context_position": 2048,
+      "block_size_tokens": 32,
+      "batch_size": 16,
+      "total_batch_ms_mean": 765.8277,
+      "total_batch_ms_min": 751.1858,
+      "total_batch_ms_max": 774.3124,
+      "per_block_ms_mean": 47.8642,
+      "per_block_ms_min": 46.9491,
+      "per_block_ms_max": 48.3945,
+      "per_token_ms_mean": 1.4958,
+      "individual_runs_ms": [
+        751.1858,
+        771.985,
+        774.3124
+      ]
+    },
+    {
+      "context_position": 2048,
+      "block_size_tokens": 32,
+      "batch_size": 32,
+      "total_batch_ms_mean": 896.3983,
+      "total_batch_ms_min": 885.8315,
+      "total_batch_ms_max": 902.2384,
+      "per_block_ms_mean": 28.0124,
+      "per_block_ms_min": 27.6822,
+      "per_block_ms_max": 28.195,
+      "per_token_ms_mean": 0.8754,
+      "individual_runs_ms": [
+        885.8315,
+        902.2384,
+        901.1251
+      ]
+    },
+    {
+      "context_position": 8192,
+      "block_size_tokens": 32,
+      "batch_size": 1,
+      "total_batch_ms_mean": 436.5467,
+      "total_batch_ms_min": 418.5031,
+      "total_batch_ms_max": 453.3419,
+      "per_block_ms_mean": 436.5467,
+      "per_block_ms_min": 418.5031,
+      "per_block_ms_max": 453.3419,
+      "per_token_ms_mean": 13.6421,
+      "individual_runs_ms": [
+        418.5031,
+        437.795,
+        453.3419
+      ]
+    },
+    {
+      "context_position": 8192,
+      "block_size_tokens": 32,
+      "batch_size": 2,
+      "total_batch_ms_mean": 529.0912,
+      "total_batch_ms_min": 517.9739,
+      "total_batch_ms_max": 543.4693,
+      "per_block_ms_mean": 264.5456,
+      "per_block_ms_min": 258.987,
+      "per_block_ms_max": 271.7346,
+      "per_token_ms_mean": 8.2671,
+      "individual_runs_ms": [
+        517.9739,
+        525.8304,
+        543.4693
+      ]
+    },
+    {
+      "context_position": 8192,
+      "block_size_tokens": 32,
+      "batch_size": 4,
+      "total_batch_ms_mean": 642.7951,
+      "total_batch_ms_min": 634.3389,
+      "total_batch_ms_max": 651.0568,
+      "per_block_ms_mean": 160.6988,
+      "per_block_ms_min": 158.5847,
+      "per_block_ms_max": 162.7642,
+      "per_token_ms_mean": 5.0218,
+      "individual_runs_ms": [
+        634.3389,
+        642.9897,
+        651.0568
+      ]
+    },
+    {
+      "context_position": 8192,
+      "block_size_tokens": 32,
+      "batch_size": 8,
+      "total_batch_ms_mean": 751.7195,
+      "total_batch_ms_min": 744.8858,
+      "total_batch_ms_max": 755.9835,
+      "per_block_ms_mean": 93.9649,
+      "per_block_ms_min": 93.1107,
+      "per_block_ms_max": 94.4979,
+      "per_token_ms_mean": 2.9364,
+      "individual_runs_ms": [
+        744.8858,
+        754.2892,
+        755.9835
+      ]
+    },
+    {
+      "context_position": 8192,
+      "block_size_tokens": 32,
+      "batch_size": 16,
+      "total_batch_ms_mean": 926.2241,
+      "total_batch_ms_min": 918.3789,
+      "total_batch_ms_max": 930.6049,
+      "per_block_ms_mean": 57.889,
+      "per_block_ms_min": 57.3987,
+      "per_block_ms_max": 58.1628,
+      "per_token_ms_mean": 1.809,
+      "individual_runs_ms": [
+        918.3789,
+        930.6049,
+        929.6885
+      ]
+    },
+    {
+      "context_position": 8192,
+      "block_size_tokens": 32,
+      "batch_size": 32,
+      "error": "OOM"
+    },
+    {
+      "context_position": 32768,
+      "block_size_tokens": 32,
+      "batch_size": 1,
+      "total_batch_ms_mean": 504.8761,
+      "total_batch_ms_min": 502.6228,
+      "total_batch_ms_max": 506.4741,
+      "per_block_ms_mean": 504.8761,
+      "per_block_ms_min": 502.6228,
+      "per_block_ms_max": 506.4741,
+      "per_token_ms_mean": 15.7774,
+      "individual_runs_ms": [
+        502.6228,
+        506.4741,
+        505.5315
+      ]
+    },
+    {
+      "context_position": 32768,
+      "block_size_tokens": 32,
+      "batch_size": 2,
+      "total_batch_ms_mean": 630.2594,
+      "total_batch_ms_min": 627.2015,
+      "total_batch_ms_max": 632.8857,
+      "per_block_ms_mean": 315.1297,
+      "per_block_ms_min": 313.6008,
+      "per_block_ms_max": 316.4428,
+      "per_token_ms_mean": 9.8478,
+      "individual_runs_ms": [
+        627.2015,
+        632.8857,
+        630.691
+      ]
+    },
+    {
+      "context_position": 32768,
+      "block_size_tokens": 32,
+      "batch_size": 4,
+      "total_batch_ms_mean": 785.1416,
+      "total_batch_ms_min": 778.272,
+      "total_batch_ms_max": 789.9976,
+      "per_block_ms_mean": 196.2854,
+      "per_block_ms_min": 194.568,
+      "per_block_ms_max": 197.4994,
+      "per_token_ms_mean": 6.1339,
+      "individual_runs_ms": [
+        778.272,
+        787.1552,
+        789.9976
+      ]
+    },
+    {
+      "context_position": 32768,
+      "block_size_tokens": 32,
+      "batch_size": 8,
+      "error": "OOM"
+    },
+    {
+      "context_position": 131072,
+      "block_size_tokens": 32,
+      "batch_size": 1,
+      "total_batch_ms_mean": 861.8487,
+      "total_batch_ms_min": 861.1826,
+      "total_batch_ms_max": 862.375,
+      "per_block_ms_mean": 861.8487,
+      "per_block_ms_min": 861.1826,
+      "per_block_ms_max": 862.375,
+      "per_token_ms_mean": 26.9328,
+      "individual_runs_ms": [
+        861.1826,
+        861.9886,
+        862.375
+      ]
+    },
+    {
+      "context_position": 131072,
+      "block_size_tokens": 32,
+      "batch_size": 2,
+      "error": "OOM"
+    }
+  ],
+  "rerun_command": "python scripts/sweep_recompute_cost.py --model Qwen/Qwen3-30B-A3B-Instruct-2507 --engine torch --kv-mode bf16 --block-size 32 --positions 32,128,512,2048,8192,32768,131072 --batch-sizes 1,2,4,8,16,32 --warmup-iters 1 --measure-iters 3 --tp 1 --max-seq-len 131104 --output results/recompute_curve_h200_bf16_block32_batched.json"
+}

@@ -1,0 +1,101 @@
+{
+  "analysis_type": "recompute_vs_load_crossover",
+  "timestamp": "2026-03-15T22:15:14.098252+00:00",
+  "filters": {
+    "block_size": 32,
+    "dtype": null
+  },
+  "crossovers": [
+    {
+      "recompute_source": "results/recompute_curve_h200_bf16_block32.json",
+      "recompute_engine": "torch",
+      "recompute_kv_mode": "bf16",
+      "recompute_model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+      "load_dtype": "fp16",
+      "block_size_tokens": 32,
+      "load_ms": 0.1886,
+      "load_bandwidth_gbps": 8.34,
+      "with_compute_load": true,
+      "crossover_position": 0,
+      "crossover_exact": false,
+      "policy": "always_load",
+      "policy_description": "Recompute is always more expensive than loading. Offload all evicted blocks.",
+      "positions": [
+        32,
+        64,
+        128,
+        256,
+        512,
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536,
+        131072
+      ],
+      "recompute_ms": [
+        462.2393,
+        426.8434,
+        444.7995,
+        450.7342,
+        459.6917,
+        440.7452,
+        452.5926,
+        461.6677,
+        454.237,
+        472.4718,
+        523.1277,
+        621.778,
+        873.1252
+      ]
+    },
+    {
+      "recompute_source": "results/recompute_curve_h200_bf16_block32.json",
+      "recompute_engine": "torch",
+      "recompute_kv_mode": "bf16",
+      "recompute_model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+      "load_dtype": "fp8",
+      "block_size_tokens": 32,
+      "load_ms": 0.1939,
+      "load_bandwidth_gbps": 4.06,
+      "with_compute_load": true,
+      "crossover_position": 0,
+      "crossover_exact": false,
+      "policy": "always_load",
+      "policy_description": "Recompute is always more expensive than loading. Offload all evicted blocks.",
+      "positions": [
+        32,
+        64,
+        128,
+        256,
+        512,
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536,
+        131072
+      ],
+      "recompute_ms": [
+        462.2393,
+        426.8434,
+        444.7995,
+        450.7342,
+        459.6917,
+        440.7452,
+        452.5926,
+        461.6677,
+        454.237,
+        472.4718,
+        523.1277,
+        621.778,
+        873.1252
+      ]
+    }
+  ],
+  "rerun_command": "python scripts/plot_crossover.py --recompute results/recompute_curve_h200_bf16_block32.json --load results/load_curve_h200_block32.json --block-size 32 --output results/crossover_plot_h200_block32.png --output-json results/crossover_policy_h200_block32.json"
+}

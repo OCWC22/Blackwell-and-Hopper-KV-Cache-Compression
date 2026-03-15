@@ -1,0 +1,59 @@
+{
+  "sweep_type": "load_cost",
+  "timestamp": "2026-03-15T22:12:55.620771+00:00",
+  "config": {
+    "num_layers": 48,
+    "num_kv_heads": 4,
+    "head_dim": 64,
+    "block_token_sizes": [
+      32
+    ],
+    "dtypes": [
+      "fp16",
+      "fp8"
+    ],
+    "warmup_iters": 20,
+    "measure_iters": 100,
+    "with_compute_load": true,
+    "per_layer": true
+  },
+  "hardware": {
+    "gpu_name": "NVIDIA H200",
+    "gpu_count": 8,
+    "driver_version": "590.48.01",
+    "cuda_version": "13.1"
+  },
+  "measurements": [
+    {
+      "dtype": "fp16",
+      "block_tokens": 32,
+      "block_bytes": 1572864,
+      "block_mb": 1.5,
+      "load_ms_mean": 0.1886,
+      "load_ms_min": 0.1846,
+      "load_ms_max": 0.1914,
+      "bandwidth_gbps": 8.34,
+      "with_compute_load": true,
+      "per_layer_bytes": 32768,
+      "per_layer_load_ms_mean": 0.196,
+      "per_layer_load_ms_min": 0.1905,
+      "per_layer_bandwidth_gbps": 0.17
+    },
+    {
+      "dtype": "fp8",
+      "block_tokens": 32,
+      "block_bytes": 786432,
+      "block_mb": 0.75,
+      "load_ms_mean": 0.1939,
+      "load_ms_min": 0.1879,
+      "load_ms_max": 0.2093,
+      "bandwidth_gbps": 4.06,
+      "with_compute_load": true,
+      "per_layer_bytes": 16384,
+      "per_layer_load_ms_mean": 0.1963,
+      "per_layer_load_ms_min": 0.1813,
+      "per_layer_bandwidth_gbps": 0.08
+    }
+  ],
+  "rerun_command": "python scripts/sweep_load_cost.py --num-layers 48 --num-kv-heads 4 --head-dim 64 --block-tokens 32 --dtypes fp16,fp8 --warmup-iters 20 --measure-iters 100 --with-compute-load --per-layer --output results/load_curve_h200_block32.json"
+}
