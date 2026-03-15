@@ -44,6 +44,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from kv_bench_utils import (
     PowerSampler, get_gpu_info, get_cuda_version,
     make_result_template, write_result_json, percentile, generate_run_id,
+    load_workload_file_reuse,
 )
 
 
@@ -92,6 +93,8 @@ def parse_args():
                    help="Tensor parallel size")
     p.add_argument("--prefix-ratio", type=float, default=0.8,
                    help="Shared prefix ratio")
+    p.add_argument("--workload-file", default=None,
+                   help="Path to JSONL workload file (overrides inline generation)")
     return p.parse_args()
 
 
@@ -516,10 +519,16 @@ def main():
     cuda_ver = get_cuda_version()
 
     # Generate workload
-    print("Generating reuse workload...")
-    shared_prefix, suffixes, prefix_tokens_est = generate_reuse_workload(
-        args.context_length, args.requests, args.prefix_ratio
-    )
+    if args.workload_file:
+        print(f"Loading workload from {args.workload_file}...")
+        shared_prefix, suffixes, prefix_tokens_est = load_workload_file_reuse(
+            args.workload_file, args.requests
+        )
+    else:
+        print("Generating reuse workload...")
+        shared_prefix, suffixes, prefix_tokens_est = generate_reuse_workload(
+            args.context_length, args.requests, args.prefix_ratio
+        )
 
     # Initialize controller based on engine
     if args.engine == "tensorrt_llm":

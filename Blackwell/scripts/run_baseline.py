@@ -33,6 +33,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from kv_bench_utils import (
     PowerSampler, get_gpu_info, get_cuda_version, get_runtime_versions,
     make_result_template, write_result_json, percentile, generate_run_id,
+    load_workload_file,
 )
 
 
@@ -75,6 +76,8 @@ def parse_args():
                         "scenario_2_more_sessions_gpu, "
                         "scenario_3_longer_context_more_sessions_gpu, "
                         "scenario_4_longer_context_more_sessions_node")
+    p.add_argument("--workload-file", default=None,
+                   help="Path to JSONL workload file (overrides inline generation)")
     return p.parse_args()
 
 
@@ -443,11 +446,15 @@ def main():
     cuda_ver = get_cuda_version()
 
     # Generate workload
-    print("Generating workload...")
-    prompts = generate_workload(
-        args.workload_type, args.context_length,
-        args.requests, args.prefix_ratio
-    )
+    if args.workload_file:
+        print(f"Loading workload from {args.workload_file}...")
+        prompts = load_workload_file(args.workload_file, args.requests)
+    else:
+        print("Generating workload...")
+        prompts = generate_workload(
+            args.workload_type, args.context_length,
+            args.requests, args.prefix_ratio
+        )
     shared_prefix_tokens = prompts[0][1] if prompts else 0
 
     # Create engine

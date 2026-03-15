@@ -54,7 +54,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from kv_bench_utils import (
     PowerSampler, get_gpu_info, get_cuda_version,
     make_result_template, write_result_json, percentile, generate_run_id,
-    tokens_per_joule,
+    tokens_per_joule, load_workload_file_prompts_only,
 )
 
 
@@ -99,6 +99,8 @@ def parse_args():
     p.add_argument("--gpu-memory-utilization", type=float, default=0.90)
     p.add_argument("--scenario-id", default=None,
                    help="Scenario ID (auto-detected from tp and lmcache flags)")
+    p.add_argument("--workload-file", default=None,
+                   help="Path to JSONL workload file (overrides inline generation)")
     return p.parse_args()
 
 
@@ -334,9 +336,15 @@ async def run_sweep(args):
         print("Server is ready.\n")
 
         # Generate prompts
-        prompts, prefix_tokens = generate_prompts(
-            args.context_length, args.requests_per_level, args.prefix_ratio
-        )
+        if args.workload_file:
+            print(f"Loading workload from {args.workload_file}...")
+            prompts, prefix_tokens = load_workload_file_prompts_only(
+                args.workload_file, args.requests_per_level
+            )
+        else:
+            prompts, prefix_tokens = generate_prompts(
+                args.context_length, args.requests_per_level, args.prefix_ratio
+            )
 
         gpu_info = get_gpu_info()
         cuda_ver = get_cuda_version()

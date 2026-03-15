@@ -34,6 +34,11 @@ def parse_args():
                    help="Output markdown file")
     p.add_argument("--format", choices=["markdown", "csv"], default="markdown",
                    help="Output format")
+    p.add_argument("--group-by", choices=["scenario", "prompt_bucket", "variant"],
+                   default="scenario",
+                   help="Group results by scenario_id, prompt_bucket_tokens, or variant")
+    p.add_argument("--emit-csv", action="store_true",
+                   help="Also emit a CSV file alongside the markdown")
     return p.parse_args()
 
 
@@ -81,7 +86,8 @@ def build_comparison_table(results):
         return "No results to compare.\n"
 
     headers = [
-        "Run ID", "Engine", "Scenario", "KV Mode", "Tiered", "Context", "Requests",
+        "Run ID", "Engine", "Scenario", "KV Mode", "Tiered", "Context",
+        "Conc", "Requests",
         "TTFT p50", "TTFT p95", "TPOT p50", "TPOT p95",
         "Throughput", "Peak HBM", "Power", "Cache Hit",
     ]
@@ -97,6 +103,7 @@ def build_comparison_table(results):
         engine = rt.get("engine", "?")
         kv_mode = model.get("kv_mode", model.get("kv_mode_requested", "?"))
         tiered = "yes" if t.get("enabled") else "no"
+        concurrency = str(wl.get("concurrency", 1))
 
         scenario = r.get("scenario_id", "—")
         if scenario and len(scenario) > 15:
@@ -109,6 +116,7 @@ def build_comparison_table(results):
             kv_mode,
             tiered,
             str(model.get("context_length", "?")),
+            concurrency,
             str(wl.get("requests", "?")),
             format_val(m.get("ttft_ms_p50")),
             format_val(m.get("ttft_ms_p95")),
@@ -341,6 +349,44 @@ def main():
     os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
     with open(args.output, "w") as f:
         f.write(full_output)
+
+    # Emit CSV alongside markdown if requested
+    if args.emit_csv:
+        csv_path = args.output.replace(".md", ".csv")
+        with open(csv_path, "w") as f:
+            csv_headers = [
+                "run_id", "engine", "scenario_id", "kv_mode", "tiered",
+                "context_length", "concurrency", "requests",
+                "ttft_p50_ms", "ttft_p95_ms", "tpot_p50_ms", "tpot_p95_ms",
+                "throughput_tps", "peak_hbm_gb", "power_w", "cache_hit_rate",
+            ]
+            f.write(",".join(csv_headers) + "\n")
+            for r in results:
+                m = r.get("metrics", {})
+                t = r.get("tiering", {})
+                model = r.get("model", {})
+                wl = r.get("workload", {})
+                rt = r.get("runtime", {})
+                vals = [
+                    r.get("run_id", ""),
+                    rt.get("engine", ""),
+                    r.get("scenario_id", ""),
+                    model.get("kv_mode", ""),
+                    "yes" if t.get("enabled") else "no",
+                    str(model.get("context_length", "")),
+                    str(wl.get("concurrency", 1)),
+                    str(wl.get("requests", "")),
+                    str(m.get("ttft_ms_p50", "")),
+                    str(m.get("ttft_ms_p95", "")),
+                    str(m.get("tpot_ms_p50", "")),
+                    str(m.get("tpot_ms_p95", "")),
+                    str(m.get("throughput_tokens_per_s", "")),
+                    str(m.get("peak_hbm_gb", "")),
+                    str(m.get("gpu_power_w_avg", "")),
+                    str(m.get("cache_hit_rate", "")),
+                ]
+                f.write(",".join(vals) + "\n")
+        print(f"CSV written to {csv_path}")
 
     # Print to stdout
     print(full_output)
