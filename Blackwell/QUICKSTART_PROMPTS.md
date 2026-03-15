@@ -1,141 +1,206 @@
 # Quickstart Prompts
 
-Use these prompts with either Codex or Claude Code. They are written for a skeptical engineer who wants a one-shot Blackwell task with a clear benchmark ladder.
+Use these prompts with Codex or Claude Code. Each requires exact files, exact JSON outputs, exact rerun commands, one benchmark table, and one bottleneck note.
 
-## 1. Blackwell Repo Recon
+**Every prompt must obey:**
+- No engine rewrite
+- No multi-node before single-node success
+- No claiming NVFP4 hot-KV unless support gate verifies it
+- Produce machine-readable JSON matching the canonical schema
+- Leave exact rerun commands
+
+---
+
+## 1. Environment Probe
 
 ```text
-Work inside /Users/chen/Documents/GitHub/Hopper-KV-Cache-Compression/Blackwell.
-Read README.md, AGENTS.md, CLAUDE.md, QUICKSTART_PROMPTS.md, blackwell_kv_hackathon_context.md, PROMPT_BLACKWELL_NVFP4_KVTC.md, and scripts/.
+Run the environment probe and verify the support gate.
 
-Then answer three questions with concrete file edits:
-1. What can this repo run today on Blackwell?
-2. What is the shortest path to aligned BF16, FP8, and NVFP4 baselines?
-3. What is the next missing piece for a credible NVFP4 plus KVTC tiering experiment?
+Files to read:
+- CLAUDE.md (support gate section)
+- scripts/env_probe.sh
 
-Constraints:
-- Blackwell first
-- native NVFP4 hot KV
-- KVTC warm or cold tier
-- prefer the smallest useful set of edits over a long memo
+Action:
+- Run: bash scripts/env_probe.sh
+- Verify results/env_probe.json exists and has all fields
+- Report the support gate result: is_blackwell, nvfp4_kv_supported, fp8_kv_supported, recommended_hot_tier
+
+Expected output:
+- results/env_probe.json
+
+Rerun command:
+- bash scripts/env_probe.sh
+
+Bottleneck note:
+- If not Blackwell or no KV dtype support, document what blocked and pivot to bf16.
 ```
 
-## 2. Baseline Hardening
+## 2. Aligned Baselines
 
 ```text
-Improve the existing baseline harness in scripts/run_baseline.py and scripts/baseline_inference.sh so it is a trustworthy Blackwell reference point.
+Run BF16 and FP8 baselines and produce a comparison table.
 
-Focus on:
-- stable CLI flags
-- explicit precision metadata
-- timing and memory reporting that is honest about limitations
-- safer dependency handling
-- clear JSON results under results/
-
-Read:
-- README.md
-- blackwell_kv_hackathon_context.md
+Files to read:
 - scripts/run_baseline.py
-- scripts/baseline_inference.sh
+- scripts/compare_results.py
+- results/env_probe.json (must exist)
 
-Make the edits, then explain exactly how to run BF16, FP8, and NVFP4 baselines on the target hardware.
+Actions:
+1. python scripts/run_baseline.py --kv-mode bf16 --context-length 8192 --requests 10 --output results/baseline_bf16_8192.json
+2. python scripts/run_baseline.py --kv-mode fp8 --context-length 8192 --requests 10 --output results/baseline_fp8_8192.json
+3. python scripts/compare_results.py --output results/comparison.md
+
+Expected outputs:
+- results/baseline_bf16_8192.json
+- results/baseline_fp8_8192.json
+- results/comparison.md
+
+Benchmark table:
+- compare_results.py produces the table automatically
+
+Bottleneck note:
+- Is FP8 faster or slower than BF16? What's the HBM difference? If FP8 regresses, why?
+
+Rerun commands:
+- Exact commands above
 ```
 
-## 3. NVFP4 Baseline Path
+## 3. NVFP4 Baseline (If Support Gate Passes)
 
 ```text
-Turn the repo into a clean NVFP4 baseline validation harness.
+Run NVFP4 baseline and add to comparison table. Only if env_probe.json shows nvfp4_kv_supported is true.
 
-Read:
-- README.md
-- blackwell_kv_hackathon_context.md
-- PROMPT_BLACKWELL_NVFP4_KVTC.md
-- scripts/check_gpu.sh
-- scripts/setup_env.sh
-- scripts/
+Files to read:
+- results/env_probe.json
+- scripts/run_baseline.py
 
-Deliver:
-- one runnable NVFP4 path
-- clear prerequisites
-- clear success and failure signals
-- output that makes BF16, FP8, and NVFP4 easy to compare
+Actions:
+1. Check results/env_probe.json — if nvfp4_kv_supported is not true, skip and document why
+2. python scripts/run_baseline.py --kv-mode nvfp4 --context-length 8192 --requests 10 --output results/baseline_nvfp4_8192.json
+3. python scripts/compare_results.py --output results/comparison.md
 
-Constraints:
-- use official NVIDIA and vLLM behavior
-- keep Slurm-safe execution
-- do not jump to KVTC until the NVFP4 baseline is real
+Expected output:
+- results/baseline_nvfp4_8192.json (or skip note if unsupported)
+- Updated results/comparison.md
+
+Benchmark table:
+- BF16 vs FP8 vs NVFP4
+
+Bottleneck note:
+- Does NVFP4 reduce HBM vs FP8? What's the latency trade?
+- If NVFP4 is not supported, record the exact error and the fallback decision.
 ```
 
-## 4. KVTC Warm-Tier Scaffold
+## 4. Tiered Experiment — Demand Promotion
 
 ```text
-Add or improve the first NVFP4 plus KVTC scaffold for the hackathon.
+Run the first tiered KV experiment with demand promotion.
 
-Read:
-- README.md
-- blackwell_kv_hackathon_context.md
-- PROMPT_BLACKWELL_NVFP4_KVTC.md
-- scripts/
-- src/
+Files to read:
+- scripts/run_tiered_experiment.py
+- TIERED_KV_ARCHITECTURE.md (Bucket 2: Repo Hypothesis)
 
-Requirements:
-- treat KVTC as a warm or cold tier by default
-- make promotion-path assumptions explicit
-- keep logs and outputs easy to inspect
-- explain what evidence would justify making KVTC more hot-path-visible later
+Actions:
+1. python scripts/run_tiered_experiment.py --kv-mode fp8 --promotion-policy demand --context-length 8192 --requests 10 --output results/tiered_fp8_demand_8192.json
+2. python scripts/compare_results.py --output results/comparison.md
+
+Expected output:
+- results/tiered_fp8_demand_8192.json
+- Updated results/comparison.md
+
+Benchmark table:
+- Must show cold-path TTFT vs warm-path TTFT
+- Must show promotion latency
+- Must show eligible blocks percentage
+
+Bottleneck note:
+- Is the TTFT improvement from cache reuse meaningful?
+- What fraction of tokens was eligible for cold tier?
+- Does promotion latency dominate or get amortized?
 ```
 
-## 5. Blackwell Sweep
+## 5. Policy Ablation — Eager vs Demand
 
 ```text
-Prepare this repo for a safe Blackwell validation sweep.
+Run eager promotion and compare against demand promotion.
 
-Read:
-- README.md
-- AGENTS.md
-- blackwell_kv_hackathon_context.md
-- scripts/
+Files to read:
+- results/tiered_fp8_demand_8192.json (must exist from prompt 4)
+- scripts/run_tiered_experiment.py
 
-Add or improve:
-- submission ergonomics
-- environment assumptions
-- result naming
-- simple commands for repeated single-GPU jobs and optional multi-GPU follow-ups
+Actions:
+1. python scripts/run_tiered_experiment.py --kv-mode fp8 --promotion-policy eager --context-length 8192 --requests 10 --output results/tiered_fp8_eager_8192.json
+2. python scripts/compare_results.py --output results/comparison.md
 
-Do not jump to distributed inference unless the single-GPU path is already stable.
+Expected output:
+- results/tiered_fp8_eager_8192.json
+- Updated results/comparison.md
+
+Benchmark table:
+- Demand vs eager: TTFT, promotion latency, HBM
+
+Bottleneck note:
+- Which policy wins on TTFT? Which wins on HBM?
+- Is eager pre-warming worth the upfront cost?
 ```
 
-## 6. Promotion And Protection Policy
+## 6. Slurm Sweep
 
 ```text
-Plan and scaffold the first runtime policy pass for NVFP4 plus KVTC.
+Submit baseline jobs via Slurm for bf16 and fp8.
 
-Read:
-- blackwell_kv_hackathon_context.md
-- PROMPT_BLACKWELL_NVFP4_KVTC.md
-- README.md
-- scripts/
-- src/
+Files to read:
+- scripts/baseline_single_gpu.sbatch
+- scripts/baseline_one_node.sbatch
+- configs/blackwell_eval_matrix.tsv
 
-Requirements:
-- define what stays resident in NVFP4
-- define what moves into KVTC
-- define how to protect recent or sink-sensitive token windows if accuracy drops
-- optimize for latency plus quality, not codec elegance
+Actions:
+1. KV_MODE=bf16 sbatch scripts/baseline_single_gpu.sbatch
+2. KV_MODE=fp8 sbatch scripts/baseline_single_gpu.sbatch
+3. Wait for completion, check logs/
+4. python scripts/compare_results.py --output results/comparison.md
+
+Expected outputs:
+- results/baseline_bf16_8192_<jobid>.json
+- results/baseline_fp8_8192_<jobid>.json
+- logs/kv-single-gpu-<jobid>.out
+
+Only after single-GPU succeeds:
+5. KV_MODE=fp8 sbatch scripts/baseline_one_node.sbatch
+
+Bottleneck note:
+- Did Slurm jobs complete cleanly? Any resource contention?
+- Is one-node TP scaling linear or sublinear?
 ```
 
-## 7. Skeptical Review
+## 7. Decision Memo
 
 ```text
-Review the current Blackwell track like a skeptical CTO who wants proof, not ambition.
+Produce the final comparison and decision memo.
 
-Read every Markdown file and the runnable scripts.
+Files to read:
+- All results/baseline_*.json and results/tiered_*.json
+- BLACKWELL_24H_PRD.md (primary KPI and success thresholds)
 
-Call out:
-- any place where the docs blur Blackwell and Hopper assumptions
-- any stale or weak source link
-- any place where the baseline ladder skips BF16, FP8, or NVFP4
-- any plan that treats KVTC as a hot-path win without proving latency
+Actions:
+1. python scripts/compare_results.py --output results/comparison.md
+2. Read results/comparison.md
+3. Write a one-paragraph continue/pivot/kill recommendation based on:
+   - Did any tiered result meet the PRD target (≥25% more sessions OR ≥20% lower HBM)?
+   - What was the TTFT improvement from tiering?
+   - Was p95 TPOT regression within 10%?
+   - What is the single biggest bottleneck?
 
-Then make the concrete documentation edits, not just a review summary.
+Expected output:
+- results/comparison.md (final version with all runs)
+
+Benchmark table:
+- Full matrix: bf16, fp8, nvfp4 (if supported), tiered_demand, tiered_eager
+
+Bottleneck note:
+- One sentence: "The primary bottleneck is X because Y"
+- One sentence: "The biggest win is X with Y% improvement"
+
+Rerun command:
+- python scripts/compare_results.py --output results/comparison.md
 ```

@@ -69,3 +69,5 @@ When behavior or hardware claims matter, prefer:
 - LMCache docs: <https://docs.lmcache.ai/>
 - vLLM quantized KV cache docs: <https://docs.vllm.ai/usage/quantization/quantized_kvcache/>
 - vLLM production-stack KV cache docs: <https://docs.vllm.ai/projects/production-stack/en/latest/user_manual/kv_cache/index.html>
+- KVTC paper (ICLR 2026): <https://openreview.net/forum?id=tMiBQXQ0Cm>
+- NVIDIA NVFP4 KV cache blog: <https://developer.nvidia.com/blog/optimizing-inference-for-long-context-and-large-batch-sizes-with-nvfp4-kv-cache>

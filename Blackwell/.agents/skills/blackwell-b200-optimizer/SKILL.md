@@ -24,3 +24,9 @@ Use this skill when the task involves Blackwell-specific performance tuning, mem
 - deterministic promotion logging
 - protection policies for recent or sink-sensitive token regions
 - profiling-guided reduction of promotion stalls
+
+## Sources
+
+- For hardware specs, bandwidth budgets, and ISA details, see the `b200-architecture` skill
+- NVIDIA Blackwell Tuning Guide: <https://docs.nvidia.com/cuda/blackwell-tuning-guide/index.html>
+- NVIDIA NVFP4 KV cache blog: <https://developer.nvidia.com/blog/optimizing-inference-for-long-context-and-large-batch-sizes-with-nvfp4-kv-cache>

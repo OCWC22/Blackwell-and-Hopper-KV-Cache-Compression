@@ -6,7 +6,7 @@
 #SBATCH --cpus-per-task=64
 #SBATCH --mem=0
 #SBATCH --time=02:00:00
-#SBATCH --array=0-3%1
+#SBATCH --array=0-7%1
 #SBATCH --output=logs/%x-%A_%a.out
 #SBATCH --error=logs/%x-%A_%a.err
 
@@ -24,18 +24,22 @@ if [[ -z "${row:-}" ]]; then
   exit 1
 fi
 
-IFS=$'\t' read -r variant context_length batch_size notes <<< "$row"
+IFS=$'\t' read -r variant model context_length batch_size workload notes <<< "$row"
 
 export RUN_ID="${RUN_ID:-${variant}-${context_length}-${batch_size}-${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}}"
 export VARIANT="$variant"
+export MODEL="$model"
 export CONTEXT_LENGTH="$context_length"
 export BATCH_SIZE="$batch_size"
+export WORKLOAD="$workload"
 export MATRIX_NOTES="$notes"
 
 {
   echo "variant=$VARIANT"
+  echo "model=$MODEL"
   echo "context_length=$CONTEXT_LENGTH"
   echo "batch_size=$BATCH_SIZE"
+  echo "workload=$WORKLOAD"
   echo "notes=$MATRIX_NOTES"
 } > "$repo_root/results/${RUN_ID}.matrix.env"
 
