@@ -1,0 +1,3 @@
+# Project-local Codex defaults for the Blackwell hackathon track.
+model_reasoning_effort = "high"
+tool_output_token_limit = 25000

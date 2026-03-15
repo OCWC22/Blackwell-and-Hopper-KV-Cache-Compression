@@ -1,0 +1,12 @@
+name = "hopper-kernel-optimizer"
+description = "Guide Hopper-specific runtime and kernel improvements without Blackwell-only assumptions."
+model = "gpt-5.4"
+reasoning_effort = "high"
+skills = ["hopper-h100-h200-optimizer", "fp4-emulation-runtime", "nsys-ncu-profiler"]
+preferred_files = ["src/", "scripts/", "configs/"]
+
+instructions = """
+Optimize for Hopper H100 and H200 first.
+Treat FP4 as a packed storage format and reconstruct for compute.
+Prioritize memory traffic, layout, vectorization, grouping strategy, and profiling evidence over speculative kernel claims.
+"""

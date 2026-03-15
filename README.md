@@ -1,54 +1,71 @@
-# Hopper KV Cache Compression
+# KV Cache Runtime Research
 
-KV cache compression experiments on Hopper GPUs (H100/H200/B200) via SLURM cluster.
+This repository is now split into two deliberate tracks:
 
-## Quick Start
+## Tracks
 
-Once SSH access is live:
+- `Blackwell/`: the hackathon execution lane. This is where we validate a Blackwell-native KV runtime that keeps hot KV in `NVFP4`, uses `KVTC` for warm or cold retention, and optimizes promotion latency, memory footprint, and quality over a 24-hour window.
+- `Hopper/`: the longer-horizon research lane. This is where we study Hopper `H100` and `H200` paths that emulate some of the Blackwell KV economics with FP4-like packed storage, direct FP8 reconstruction, and aggressive quality protection.
+
+## Operating Principle
+
+The two tracks are related, but they are not the same project:
+
+- `Blackwell/` is the product-shaped demo path for the hackathon.
+- `Hopper/` is the systems-research path and longer-term moat.
+
+If you blur them together, the repo will start making false hardware assumptions and the experiments will stop being credible.
+
+## Where To Start
+
+- If the goal is a weekend deliverable, start in `Blackwell/`.
+- If the goal is long-term R&D on deployed Hopper fleets, start in `Hopper/`.
+
+Each track has its own:
+
+- `README.md`
+- `AGENTS.md`
+- `CLAUDE.md`
+- `QUICKSTART_PROMPTS.md`
+- track-specific context brief
+- `.agents/skills/*`
+- `.codex/agents/*`
+- `.claude/agents/*`
+
+The repo also includes:
+
+- `AGENT_HARNESS_BEST_PRACTICES.md`: best practices for Codex `AGENTS.md`, repo skills, Claude Code subagents, and handoff structure
+
+## One-Time Setup Per Track
+
+Run the skill sync script inside the track you are working in:
 
 ```bash
-# 1. SSH into login node
-ssh <username>@<login-node-ip>
+cd Blackwell
+bash scripts/sync_skills.sh
 
-# 2. Clone this repo
-git clone https://github.com/OCWC22/Hopper-KV-Cache-Compression.git
-cd Hopper-KV-Cache-Compression
+# or
 
-# 3. Verify cluster
-bash scripts/check_cluster.sh
-
-# 4. Get a GPU and verify
-srun --gpus=1 --pty bash
-bash scripts/check_gpu.sh
-exit
-
-# 5. Set up environment
-bash scripts/setup_env.sh
-
-# 6. Run baseline benchmark
-sbatch scripts/baseline_inference.sh
-
-# 7. Check results
-tail -f logs/kv-baseline-*.out
+cd Hopper
+bash scripts/sync_skills.sh
 ```
 
-## Structure
+## Source Priorities
 
-```
-scripts/
-  check_cluster.sh      # Verify SLURM + filesystem (login node)
-  check_gpu.sh          # Verify GPU + CUDA + PyTorch (compute node)
-  setup_env.sh          # Install Python deps
-  baseline_inference.sh # SBATCH: baseline vLLM decode benchmark
-  run_baseline.py       # Baseline measurement script
-configs/                # Experiment configs
-results/                # Benchmark outputs (JSON)
-logs/                   # SLURM job logs
-src/                    # KV compression implementations
-```
+When behavior or hardware claims matter, prefer:
 
-## Experiment Plan
+- official NVIDIA docs and blogs
+- official vLLM docs
+- official LMCache docs
+- primary papers or OpenReview / arXiv links
 
-1. **Baseline**: vLLM decode latency + memory at 8k/32k/64k context
-2. **KV Compression**: Add compression runtime, measure overhead vs savings
-3. **Accuracy**: Verify generation quality with compressed KV cache
+## Primary References
+
+- NVIDIA Blackwell NVFP4 overview: <https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/>
+- NVIDIA Blackwell KV cache optimization blog: <https://developer.nvidia.com/blog/5x-faster-time-to-first-token-with-nvidia-tensorrt-llm-kv-cache-early-reuse/>
+- NVIDIA H100: <https://www.nvidia.com/en-us/data-center/h100/>
+- NVIDIA H200: <https://www.nvidia.com/en-us/data-center/h200/>
+- NVIDIA Hopper architecture: <https://developer.nvidia.com/blog/nvidia-hopper-architecture-in-depth/>
+- LMCache docs: <https://docs.lmcache.ai/>
+- vLLM quantized KV cache docs: <https://docs.vllm.ai/usage/quantization/quantized_kvcache/>
+- vLLM production-stack KV cache docs: <https://docs.vllm.ai/projects/production-stack/en/latest/user_manual/kv_cache/index.html>

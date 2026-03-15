@@ -1,0 +1,5 @@
+variant	context_length	batch_size	notes
+bf16	8192	1	single-gpu-or-one-node-baseline
+fp8	8192	1	first-low-precision-baseline
+nvfp4	8192	1	native-blackwell-hot-kv-baseline
+nvfp4_kvtc	8192	1	first-tiering-follow-up
