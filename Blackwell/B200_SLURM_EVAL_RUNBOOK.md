@@ -105,17 +105,17 @@ exit
 
 Run the generic batch harness with one node and the exact baseline command.
 
-### Stage 3: one-node `NVFP4` sweep
+### Stage 3: one-node `FP8+LMCache` sweep
 
 Repeat the same harness with:
 
 - `BF16`
 - `FP8`
-- `NVFP4`
+- `FP8+LMCache`
 
-### Stage 4: one-node `FP8+LMCache`
+### Stage 4: optional one-node `NVFP4`
 
-Run the first integrated tiering experiment with protection-policy metadata captured.
+Only if runtime support is verified, run optional NVFP4 enhancement with protection-policy metadata captured.
 
 ### Stage 5: multi-node B200
 
