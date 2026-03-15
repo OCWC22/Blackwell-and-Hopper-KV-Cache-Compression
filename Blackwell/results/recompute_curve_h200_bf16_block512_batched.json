@@ -1,0 +1,799 @@
+{
+  "sweep_type": "recompute_cost",
+  "timestamp": "2026-03-15T23:46:29.875367+00:00",
+  "config": {
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "engine": "torch",
+    "kv_mode": "bf16",
+    "block_size_tokens": 512,
+    "batch_sizes": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+    ],
+    "warmup_iters": 1,
+    "measure_iters": 3,
+    "tp": 1,
+    "max_seq_len": 131584
+  },
+  "hardware": {
+    "gpu_name": "NVIDIA H200",
+    "gpu_count": 8,
+    "driver_version": "590.48.01",
+    "cuda_version": "13.1"
+  },
+  "measurements": [
+    {
+      "context_position": 512,
+      "block_size_tokens": 512,
+      "batch_size": 1,
+      "total_batch_ms_mean": 824.6613,
+      "total_batch_ms_min": 775.3618,
+      "total_batch_ms_max": 872.2192,
+      "per_block_ms_mean": 824.6613,
+      "per_block_ms_min": 775.3618,
+      "per_block_ms_max": 872.2192,
+      "per_token_ms_mean": 1.6107,
+      "individual_runs_ms": [
+        872.2192,
+        826.4027,
+        775.3618
+      ]
+    },
+    {
+      "context_position": 512,
+      "block_size_tokens": 512,
+      "batch_size": 2,
+      "total_batch_ms_mean": 956.9013,
+      "total_batch_ms_min": 901.8168,
+      "total_batch_ms_max": 1005.8329,
+      "per_block_ms_mean": 478.4506,
+      "per_block_ms_min": 450.9084,
+      "per_block_ms_max": 502.9165,
+      "per_token_ms_mean": 0.9345,
+      "individual_runs_ms": [
+        1005.8329,
+        963.0541,
+        901.8168
+      ]
+    },
+    {
+      "context_position": 512,
+      "block_size_tokens": 512,
+      "batch_size": 4,
+      "total_batch_ms_mean": 1112.71,
+      "total_batch_ms_min": 1090.3411,
+      "total_batch_ms_max": 1134.3418,
+      "per_block_ms_mean": 278.1775,
+      "per_block_ms_min": 272.5853,
+      "per_block_ms_max": 283.5854,
+      "per_token_ms_mean": 0.5433,
+      "individual_runs_ms": [
+        1113.4473,
+        1134.3418,
+        1090.3411
+      ]
+    },
+    {
+      "context_position": 512,
+      "block_size_tokens": 512,
+      "batch_size": 8,
+      "total_batch_ms_mean": 1293.1396,
+      "total_batch_ms_min": 1274.9122,
+      "total_batch_ms_max": 1311.3533,
+      "per_block_ms_mean": 161.6425,
+      "per_block_ms_min": 159.364,
+      "per_block_ms_max": 163.9192,
+      "per_token_ms_mean": 0.3157,
+      "individual_runs_ms": [
+        1311.3533,
+        1293.1533,
+        1274.9122
+      ]
+    },
+    {
+      "context_position": 512,
+      "block_size_tokens": 512,
+      "batch_size": 16,
+      "total_batch_ms_mean": 1461.7518,
+      "total_batch_ms_min": 1440.0433,
+      "total_batch_ms_max": 1475.004,
+      "per_block_ms_mean": 91.3595,
+      "per_block_ms_min": 90.0027,
+      "per_block_ms_max": 92.1878,
+      "per_token_ms_mean": 0.1784,
+      "individual_runs_ms": [
+        1440.0433,
+        1470.208,
+        1475.004
+      ]
+    },
+    {
+      "context_position": 512,
+      "block_size_tokens": 512,
+      "batch_size": 32,
+      "total_batch_ms_mean": 1887.1191,
+      "total_batch_ms_min": 1831.1718,
+      "total_batch_ms_max": 1930.1849,
+      "per_block_ms_mean": 58.9725,
+      "per_block_ms_min": 57.2241,
+      "per_block_ms_max": 60.3183,
+      "per_token_ms_mean": 0.1152,
+      "individual_runs_ms": [
+        1831.1718,
+        1900.0006,
+        1930.1849
+      ]
+    },
+    {
+      "context_position": 512,
+      "block_size_tokens": 512,
+      "batch_size": 64,
+      "total_batch_ms_mean": 2699.7225,
+      "total_batch_ms_min": 2579.0374,
+      "total_batch_ms_max": 2821.3687,
+      "per_block_ms_mean": 42.1832,
+      "per_block_ms_min": 40.2975,
+      "per_block_ms_max": 44.0839,
+      "per_token_ms_mean": 0.0824,
+      "individual_runs_ms": [
+        2579.0374,
+        2698.7615,
+        2821.3687
+      ]
+    },
+    {
+      "context_position": 512,
+      "block_size_tokens": 512,
+      "batch_size": 128,
+      "error": "CUDA out of memory. Tried to allocate 18.55 GiB. GPU 0 has a total capacity of 139.80 GiB of which 4.76 GiB is free. Including non-PyTorch memory, this process has 135.03 GiB memory in use. Of the allocated memory 105.70 GiB is allocated by PyTorch, and 28.66 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)"
+    },
+    {
+      "context_position": 512,
+      "block_size_tokens": 512,
+      "batch_size": 256,
+      "error": "OOM"
+    },
+    {
+      "context_position": 1024,
+      "block_size_tokens": 512,
+      "batch_size": 1,
+      "total_batch_ms_mean": 745.7058,
+      "total_batch_ms_min": 743.1783,
+      "total_batch_ms_max": 747.8206,
+      "per_block_ms_mean": 745.7058,
+      "per_block_ms_min": 743.1783,
+      "per_block_ms_max": 747.8206,
+      "per_token_ms_mean": 1.4565,
+      "individual_runs_ms": [
+        746.1185,
+        747.8206,
+        743.1783
+      ]
+    },
+    {
+      "context_position": 1024,
+      "block_size_tokens": 512,
+      "batch_size": 2,
+      "total_batch_ms_mean": 823.8319,
+      "total_batch_ms_min": 815.8735,
+      "total_batch_ms_max": 828.813,
+      "per_block_ms_mean": 411.9159,
+      "per_block_ms_min": 407.9368,
+      "per_block_ms_max": 414.4065,
+      "per_token_ms_mean": 0.8045,
+      "individual_runs_ms": [
+        815.8735,
+        828.813,
+        826.809
+      ]
+    },
+    {
+      "context_position": 1024,
+      "block_size_tokens": 512,
+      "batch_size": 4,
+      "total_batch_ms_mean": 917.0431,
+      "total_batch_ms_min": 908.4326,
+      "total_batch_ms_max": 921.667,
+      "per_block_ms_mean": 229.2608,
+      "per_block_ms_min": 227.1081,
+      "per_block_ms_max": 230.4167,
+      "per_token_ms_mean": 0.4478,
+      "individual_runs_ms": [
+        908.4326,
+        921.667,
+        921.0296
+      ]
+    },
+    {
+      "context_position": 1024,
+      "block_size_tokens": 512,
+      "batch_size": 8,
+      "total_batch_ms_mean": 1065.7299,
+      "total_batch_ms_min": 1048.4111,
+      "total_batch_ms_max": 1076.8895,
+      "per_block_ms_mean": 133.2162,
+      "per_block_ms_min": 131.0514,
+      "per_block_ms_max": 134.6112,
+      "per_token_ms_mean": 0.2602,
+      "individual_runs_ms": [
+        1048.4111,
+        1071.8892,
+        1076.8895
+      ]
+    },
+    {
+      "context_position": 1024,
+      "block_size_tokens": 512,
+      "batch_size": 16,
+      "total_batch_ms_mean": 1304.8759,
+      "total_batch_ms_min": 1273.4935,
+      "total_batch_ms_max": 1337.2511,
+      "per_block_ms_mean": 81.5547,
+      "per_block_ms_min": 79.5933,
+      "per_block_ms_max": 83.5782,
+      "per_token_ms_mean": 0.1593,
+      "individual_runs_ms": [
+        1273.4935,
+        1303.8832,
+        1337.2511
+      ]
+    },
+    {
+      "context_position": 1024,
+      "block_size_tokens": 512,
+      "batch_size": 32,
+      "total_batch_ms_mean": 1810.6145,
+      "total_batch_ms_min": 1739.5684,
+      "total_batch_ms_max": 1873.0747,
+      "per_block_ms_mean": 56.5817,
+      "per_block_ms_min": 54.3615,
+      "per_block_ms_max": 58.5336,
+      "per_token_ms_mean": 0.1105,
+      "individual_runs_ms": [
+        1739.5684,
+        1819.2006,
+        1873.0747
+      ]
+    },
+    {
+      "context_position": 1024,
+      "block_size_tokens": 512,
+      "batch_size": 64,
+      "total_batch_ms_mean": 2735.3978,
+      "total_batch_ms_min": 2591.0403,
+      "total_batch_ms_max": 2869.6875,
+      "per_block_ms_mean": 42.7406,
+      "per_block_ms_min": 40.485,
+      "per_block_ms_max": 44.8389,
+      "per_token_ms_mean": 0.0835,
+      "individual_runs_ms": [
+        2591.0403,
+        2745.4656,
+        2869.6875
+      ]
+    },
+    {
+      "context_position": 1024,
+      "block_size_tokens": 512,
+      "batch_size": 128,
+      "error": "OOM"
+    },
+    {
+      "context_position": 2048,
+      "block_size_tokens": 512,
+      "batch_size": 1,
+      "total_batch_ms_mean": 751.1153,
+      "total_batch_ms_min": 745.913,
+      "total_batch_ms_max": 755.1466,
+      "per_block_ms_mean": 751.1153,
+      "per_block_ms_min": 745.913,
+      "per_block_ms_max": 755.1466,
+      "per_token_ms_mean": 1.467,
+      "individual_runs_ms": [
+        745.913,
+        755.1466,
+        752.2861
+      ]
+    },
+    {
+      "context_position": 2048,
+      "block_size_tokens": 512,
+      "batch_size": 2,
+      "total_batch_ms_mean": 836.3342,
+      "total_batch_ms_min": 830.8221,
+      "total_batch_ms_max": 840.7046,
+      "per_block_ms_mean": 418.1671,
+      "per_block_ms_min": 415.411,
+      "per_block_ms_max": 420.3523,
+      "per_token_ms_mean": 0.8167,
+      "individual_runs_ms": [
+        830.8221,
+        840.7046,
+        837.476
+      ]
+    },
+    {
+      "context_position": 2048,
+      "block_size_tokens": 512,
+      "batch_size": 4,
+      "total_batch_ms_mean": 928.8337,
+      "total_batch_ms_min": 921.5542,
+      "total_batch_ms_max": 935.5604,
+      "per_block_ms_mean": 232.2084,
+      "per_block_ms_min": 230.3885,
+      "per_block_ms_max": 233.8901,
+      "per_token_ms_mean": 0.4535,
+      "individual_runs_ms": [
+        921.5542,
+        929.3865,
+        935.5604
+      ]
+    },
+    {
+      "context_position": 2048,
+      "block_size_tokens": 512,
+      "batch_size": 8,
+      "total_batch_ms_mean": 1094.0293,
+      "total_batch_ms_min": 1075.3544,
+      "total_batch_ms_max": 1110.0334,
+      "per_block_ms_mean": 136.7537,
+      "per_block_ms_min": 134.4193,
+      "per_block_ms_max": 138.7542,
+      "per_token_ms_mean": 0.2671,
+      "individual_runs_ms": [
+        1075.3544,
+        1096.7002,
+        1110.0334
+      ]
+    },
+    {
+      "context_position": 2048,
+      "block_size_tokens": 512,
+      "batch_size": 16,
+      "total_batch_ms_mean": 1388.7107,
+      "total_batch_ms_min": 1364.2906,
+      "total_batch_ms_max": 1421.239,
+      "per_block_ms_mean": 86.7944,
+      "per_block_ms_min": 85.2682,
+      "per_block_ms_max": 88.8274,
+      "per_token_ms_mean": 0.1695,
+      "individual_runs_ms": [
+        1364.2906,
+        1380.6025,
+        1421.239
+      ]
+    },
+    {
+      "context_position": 2048,
+      "block_size_tokens": 512,
+      "batch_size": 32,
+      "total_batch_ms_mean": 1958.607,
+      "total_batch_ms_min": 1908.7151,
+      "total_batch_ms_max": 2014.1527,
+      "per_block_ms_mean": 61.2065,
+      "per_block_ms_min": 59.6473,
+      "per_block_ms_max": 62.9423,
+      "per_token_ms_mean": 0.1195,
+      "individual_runs_ms": [
+        1908.7151,
+        1952.9531,
+        2014.1527
+      ]
+    },
+    {
+      "context_position": 2048,
+      "block_size_tokens": 512,
+      "batch_size": 64,
+      "error": "CUDA out of memory. Tried to allocate 9.27 GiB. GPU 0 has a total capacity of 139.80 GiB of which 7.04 GiB is free. Including non-PyTorch memory, this process has 132.76 GiB memory in use. Of the allocated memory 115.12 GiB is allocated by PyTorch, and 16.96 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)"
+    },
+    {
+      "context_position": 2048,
+      "block_size_tokens": 512,
+      "batch_size": 128,
+      "error": "OOM"
+    },
+    {
+      "context_position": 4096,
+      "block_size_tokens": 512,
+      "batch_size": 1,
+      "total_batch_ms_mean": 745.1084,
+      "total_batch_ms_min": 739.7025,
+      "total_batch_ms_max": 750.3464,
+      "per_block_ms_mean": 745.1084,
+      "per_block_ms_min": 739.7025,
+      "per_block_ms_max": 750.3464,
+      "per_token_ms_mean": 1.4553,
+      "individual_runs_ms": [
+        739.7025,
+        750.3464,
+        745.2764
+      ]
+    },
+    {
+      "context_position": 4096,
+      "block_size_tokens": 512,
+      "batch_size": 2,
+      "total_batch_ms_mean": 849.0668,
+      "total_batch_ms_min": 841.2776,
+      "total_batch_ms_max": 855.751,
+      "per_block_ms_mean": 424.5334,
+      "per_block_ms_min": 420.6388,
+      "per_block_ms_max": 427.8755,
+      "per_token_ms_mean": 0.8292,
+      "individual_runs_ms": [
+        841.2776,
+        855.751,
+        850.1716
+      ]
+    },
+    {
+      "context_position": 4096,
+      "block_size_tokens": 512,
+      "batch_size": 4,
+      "total_batch_ms_mean": 963.9335,
+      "total_batch_ms_min": 962.5776,
+      "total_batch_ms_max": 965.3555,
+      "per_block_ms_mean": 240.9834,
+      "per_block_ms_min": 240.6444,
+      "per_block_ms_max": 241.3389,
+      "per_token_ms_mean": 0.4707,
+      "individual_runs_ms": [
+        965.3555,
+        962.5776,
+        963.8675
+      ]
+    },
+    {
+      "context_position": 4096,
+      "block_size_tokens": 512,
+      "batch_size": 8,
+      "total_batch_ms_mean": 1162.1522,
+      "total_batch_ms_min": 1143.6956,
+      "total_batch_ms_max": 1185.0095,
+      "per_block_ms_mean": 145.269,
+      "per_block_ms_min": 142.9619,
+      "per_block_ms_max": 148.1262,
+      "per_token_ms_mean": 0.2837,
+      "individual_runs_ms": [
+        1143.6956,
+        1157.7516,
+        1185.0095
+      ]
+    },
+    {
+      "context_position": 4096,
+      "block_size_tokens": 512,
+      "batch_size": 16,
+      "total_batch_ms_mean": 1543.2745,
+      "total_batch_ms_min": 1511.6134,
+      "total_batch_ms_max": 1576.0034,
+      "per_block_ms_mean": 96.4547,
+      "per_block_ms_min": 94.4758,
+      "per_block_ms_max": 98.5002,
+      "per_token_ms_mean": 0.1884,
+      "individual_runs_ms": [
+        1511.6134,
+        1542.2068,
+        1576.0034
+      ]
+    },
+    {
+      "context_position": 4096,
+      "block_size_tokens": 512,
+      "batch_size": 32,
+      "total_batch_ms_mean": 2241.1352,
+      "total_batch_ms_min": 2208.061,
+      "total_batch_ms_max": 2280.8733,
+      "per_block_ms_mean": 70.0355,
+      "per_block_ms_min": 69.0019,
+      "per_block_ms_max": 71.2773,
+      "per_token_ms_mean": 0.1368,
+      "individual_runs_ms": [
+        2208.061,
+        2234.4712,
+        2280.8733
+      ]
+    },
+    {
+      "context_position": 4096,
+      "block_size_tokens": 512,
+      "batch_size": 64,
+      "error": "OOM"
+    },
+    {
+      "context_position": 8192,
+      "block_size_tokens": 512,
+      "batch_size": 1,
+      "total_batch_ms_mean": 750.3435,
+      "total_batch_ms_min": 744.1406,
+      "total_batch_ms_max": 758.0403,
+      "per_block_ms_mean": 750.3435,
+      "per_block_ms_min": 744.1406,
+      "per_block_ms_max": 758.0403,
+      "per_token_ms_mean": 1.4655,
+      "individual_runs_ms": [
+        744.1406,
+        748.8496,
+        758.0403
+      ]
+    },
+    {
+      "context_position": 8192,
+      "block_size_tokens": 512,
+      "batch_size": 2,
+      "total_batch_ms_mean": 881.3117,
+      "total_batch_ms_min": 878.9868,
+      "total_batch_ms_max": 883.3376,
+      "per_block_ms_mean": 440.6559,
+      "per_block_ms_min": 439.4934,
+      "per_block_ms_max": 441.6688,
+      "per_token_ms_mean": 0.8607,
+      "individual_runs_ms": [
+        883.3376,
+        878.9868,
+        881.6107
+      ]
+    },
+    {
+      "context_position": 8192,
+      "block_size_tokens": 512,
+      "batch_size": 4,
+      "total_batch_ms_mean": 1025.5817,
+      "total_batch_ms_min": 1021.4919,
+      "total_batch_ms_max": 1030.3507,
+      "per_block_ms_mean": 256.3954,
+      "per_block_ms_min": 255.373,
+      "per_block_ms_max": 257.5877,
+      "per_token_ms_mean": 0.5008,
+      "individual_runs_ms": [
+        1021.4919,
+        1024.9023,
+        1030.3507
+      ]
+    },
+    {
+      "context_position": 8192,
+      "block_size_tokens": 512,
+      "batch_size": 8,
+      "total_batch_ms_mean": 1304.9136,
+      "total_batch_ms_min": 1293.189,
+      "total_batch_ms_max": 1317.4062,
+      "per_block_ms_mean": 163.1142,
+      "per_block_ms_min": 161.6486,
+      "per_block_ms_max": 164.6758,
+      "per_token_ms_mean": 0.3186,
+      "individual_runs_ms": [
+        1293.189,
+        1304.1456,
+        1317.4062
+      ]
+    },
+    {
+      "context_position": 8192,
+      "block_size_tokens": 512,
+      "batch_size": 16,
+      "total_batch_ms_mean": 1842.0179,
+      "total_batch_ms_min": 1837.5048,
+      "total_batch_ms_max": 1850.5671,
+      "per_block_ms_mean": 115.1261,
+      "per_block_ms_min": 114.844,
+      "per_block_ms_max": 115.6604,
+      "per_token_ms_mean": 0.2249,
+      "individual_runs_ms": [
+        1837.5048,
+        1837.9818,
+        1850.5671
+      ]
+    },
+    {
+      "context_position": 8192,
+      "block_size_tokens": 512,
+      "batch_size": 32,
+      "error": "OOM"
+    },
+    {
+      "context_position": 16384,
+      "block_size_tokens": 512,
+      "batch_size": 1,
+      "total_batch_ms_mean": 793.3659,
+      "total_batch_ms_min": 791.4426,
+      "total_batch_ms_max": 795.7935,
+      "per_block_ms_mean": 793.3659,
+      "per_block_ms_min": 791.4426,
+      "per_block_ms_max": 795.7935,
+      "per_token_ms_mean": 1.5495,
+      "individual_runs_ms": [
+        791.4426,
+        795.7935,
+        792.8615
+      ]
+    },
+    {
+      "context_position": 16384,
+      "block_size_tokens": 512,
+      "batch_size": 2,
+      "total_batch_ms_mean": 951.7945,
+      "total_batch_ms_min": 950.6902,
+      "total_batch_ms_max": 953.0877,
+      "per_block_ms_mean": 475.8973,
+      "per_block_ms_min": 475.3451,
+      "per_block_ms_max": 476.5439,
+      "per_token_ms_mean": 0.9295,
+      "individual_runs_ms": [
+        953.0877,
+        950.6902,
+        951.6057
+      ]
+    },
+    {
+      "context_position": 16384,
+      "block_size_tokens": 512,
+      "batch_size": 4,
+      "total_batch_ms_mean": 1166.533,
+      "total_batch_ms_min": 1156.7783,
+      "total_batch_ms_max": 1175.792,
+      "per_block_ms_mean": 291.6332,
+      "per_block_ms_min": 289.1946,
+      "per_block_ms_max": 293.948,
+      "per_token_ms_mean": 0.5696,
+      "individual_runs_ms": [
+        1156.7783,
+        1175.792,
+        1167.0286
+      ]
+    },
+    {
+      "context_position": 16384,
+      "block_size_tokens": 512,
+      "batch_size": 8,
+      "total_batch_ms_mean": 1588.5972,
+      "total_batch_ms_min": 1578.7911,
+      "total_batch_ms_max": 1601.9982,
+      "per_block_ms_mean": 198.5747,
+      "per_block_ms_min": 197.3489,
+      "per_block_ms_max": 200.2498,
+      "per_token_ms_mean": 0.3878,
+      "individual_runs_ms": [
+        1578.7911,
+        1585.0024,
+        1601.9982
+      ]
+    },
+    {
+      "context_position": 16384,
+      "block_size_tokens": 512,
+      "batch_size": 16,
+      "error": "OOM"
+    },
+    {
+      "context_position": 32768,
+      "block_size_tokens": 512,
+      "batch_size": 1,
+      "total_batch_ms_mean": 860.0902,
+      "total_batch_ms_min": 859.4441,
+      "total_batch_ms_max": 860.7245,
+      "per_block_ms_mean": 860.0902,
+      "per_block_ms_min": 859.4441,
+      "per_block_ms_max": 860.7245,
+      "per_token_ms_mean": 1.6799,
+      "individual_runs_ms": [
+        860.7245,
+        860.1019,
+        859.4441
+      ]
+    },
+    {
+      "context_position": 32768,
+      "block_size_tokens": 512,
+      "batch_size": 2,
+      "total_batch_ms_mean": 1095.8758,
+      "total_batch_ms_min": 1092.5675,
+      "total_batch_ms_max": 1101.8771,
+      "per_block_ms_mean": 547.9379,
+      "per_block_ms_min": 546.2838,
+      "per_block_ms_max": 550.9385,
+      "per_token_ms_mean": 1.0702,
+      "individual_runs_ms": [
+        1101.8771,
+        1093.1829,
+        1092.5675
+      ]
+    },
+    {
+      "context_position": 32768,
+      "block_size_tokens": 512,
+      "batch_size": 4,
+      "total_batch_ms_mean": 1457.0393,
+      "total_batch_ms_min": 1449.6774,
+      "total_batch_ms_max": 1467.4141,
+      "per_block_ms_mean": 364.2598,
+      "per_block_ms_min": 362.4193,
+      "per_block_ms_max": 366.8535,
+      "per_token_ms_mean": 0.7114,
+      "individual_runs_ms": [
+        1467.4141,
+        1449.6774,
+        1454.0266
+      ]
+    },
+    {
+      "context_position": 32768,
+      "block_size_tokens": 512,
+      "batch_size": 8,
+      "error": "OOM"
+    },
+    {
+      "context_position": 65536,
+      "block_size_tokens": 512,
+      "batch_size": 1,
+      "total_batch_ms_mean": 997.1117,
+      "total_batch_ms_min": 996.4182,
+      "total_batch_ms_max": 997.8874,
+      "per_block_ms_mean": 997.1117,
+      "per_block_ms_min": 996.4182,
+      "per_block_ms_max": 997.8874,
+      "per_token_ms_mean": 1.9475,
+      "individual_runs_ms": [
+        996.4182,
+        997.8874,
+        997.0295
+      ]
+    },
+    {
+      "context_position": 65536,
+      "block_size_tokens": 512,
+      "batch_size": 2,
+      "total_batch_ms_mean": 1369.9462,
+      "total_batch_ms_min": 1368.7585,
+      "total_batch_ms_max": 1371.2069,
+      "per_block_ms_mean": 684.9731,
+      "per_block_ms_min": 684.3793,
+      "per_block_ms_max": 685.6035,
+      "per_token_ms_mean": 1.3378,
+      "individual_runs_ms": [
+        1371.2069,
+        1369.873,
+        1368.7585
+      ]
+    },
+    {
+      "context_position": 65536,
+      "block_size_tokens": 512,
+      "batch_size": 4,
+      "error": "OOM"
+    },
+    {
+      "context_position": 131072,
+      "block_size_tokens": 512,
+      "batch_size": 1,
+      "total_batch_ms_mean": 1295.4428,
+      "total_batch_ms_min": 1292.2377,
+      "total_batch_ms_max": 1297.7279,
+      "per_block_ms_mean": 1295.4428,
+      "per_block_ms_min": 1292.2377,
+      "per_block_ms_max": 1297.7279,
+      "per_token_ms_mean": 2.5302,
+      "individual_runs_ms": [
+        1296.3629,
+        1292.2377,
+        1297.7279
+      ]
+    },
+    {
+      "context_position": 131072,
+      "block_size_tokens": 512,
+      "batch_size": 2,
+      "error": "OOM"
+    }
+  ],
+  "rerun_command": "python scripts/sweep_recompute_cost.py --model Qwen/Qwen3-30B-A3B-Instruct-2507 --engine torch --kv-mode bf16 --block-size 512 --positions 512,1024,2048,4096,8192,16384,32768,65536,131072 --batch-sizes 1,2,4,8,16,32,64,128,256,512,1024 --warmup-iters 1 --measure-iters 3 --tp 1 --max-seq-len 131584 --output results/recompute_curve_h200_bf16_block512_batched.json"
+}

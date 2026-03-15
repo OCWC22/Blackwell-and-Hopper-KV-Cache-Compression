@@ -3,7 +3,7 @@
 **Date:** 2026-03-15
 **GPU:** NVIDIA H200 (140 GB HBM3e)
 **Model:** Qwen3-30B-A3B-Instruct-2507 (48 layers, 4 KV heads, head_dim 64, 128 experts MoE)
-**Block size:** 32 tokens
+**Block sizes tested:** 32 tokens, 512 tokens
 **Max context tested:** 131,072 tokens (128K)
 
 ---
@@ -109,6 +109,46 @@ Key observations:
 - PCIe saturates at ~50 GB/s (FP16) / ~45 GB/s (FP8) around 16-32 concurrent blocks
 - Per-block cost floor: **0.032 ms** (FP16) / **0.017 ms** (FP8)
 - Even at C=1 (worst case), load cost is 0.048 ms (FP16) / 0.034 ms (FP8)
+
+### 512-token blocks
+
+Larger blocks increase the load cost (more bytes) but also increase the recompute work per block. This tests whether the ratio changes.
+
+#### Recompute cost: per-block amortized (ms), block=512 tokens
+
+| Context Position | B=1 | B=2 | B=4 | B=8 | B=16 | B=32 | B=64 |
+|---|---|---|---|---|---|---|---|
+| 512 | 825 | 478 | 278 | 162 | 91 | 59 | **42** |
+| 1,024 | 746 | 412 | 229 | 133 | 82 | 57 | **43** |
+| 2,048 | 751 | 418 | 232 | 137 | 87 | **61** | OOM |
+| 4,096 | 745 | 425 | 241 | 145 | 96 | **70** | OOM |
+| 8,192 | 750 | 441 | 256 | 163 | **115** | OOM | — |
+| 16,384 | 793 | 476 | 292 | **199** | OOM | — | — |
+| 32,768 | 860 | 548 | **364** | OOM | — | — | — |
+| 65,536 | 997 | **685** | OOM | — | — | — | — |
+| 131,072 | **1295** | OOM | — | — | — | — | — |
+
+OOM hits earlier than with 32-token blocks because each block's KV is 16x larger.
+
+#### Load cost: per-block (ms), block=512 tokens
+
+| Dtype | Block size | C=1 | C=8 | C=32 | C=128 | BW at saturation |
+|---|---|---|---|---|---|---|
+| FP16 | 24.0 MB | 0.471 | 0.460 | 0.459 | 0.459 | 54.9 GB/s |
+| FP8 | 12.0 MB | 0.243 | 0.234 | 0.232 | 0.231 | 54.5 GB/s |
+
+At 512-token blocks the transfers are throughput-bound from C=1 — PCIe is already saturated at ~55 GB/s. Concurrency barely matters.
+
+#### Comparison: 32-token vs 512-token blocks
+
+| Metric | Block=32 | Block=512 | Ratio |
+|---|---|---|---|
+| **Load FP16 (C=1)** | 0.048 ms | 0.471 ms | 9.8x (tracks 16x size) |
+| **Load FP8 (C=1)** | 0.034 ms | 0.243 ms | 7.1x |
+| **Recompute floor** | 2.3 ms (B=1024) | 42 ms (B=64) | 18x |
+| **Best recompute / worst load** | 48x | 89x | — |
+
+Larger blocks make loading *relatively* more expensive (closer to BW-limited), but recompute also gets more expensive because the forward pass now covers 512 tokens of incremental attention. The ratio stays firmly in load's favor.
 
 ---
 
@@ -219,7 +259,7 @@ CUDA_VISIBLE_DEVICES=0 python scripts/sweep_recompute_cost.py \
     --max-seq-len 131104 \
     --output results/recompute_curve_h200_bf16_block32_highbatch.json
 
-# Crossover analysis (can combine both recompute files)
+# Crossover analysis — 32-token blocks
 python scripts/plot_crossover.py \
     --recompute results/recompute_curve_h200_bf16_block32_batched.json \
                 results/recompute_curve_h200_bf16_block32_highbatch.json \
@@ -227,13 +267,47 @@ python scripts/plot_crossover.py \
     --block-size 32 \
     --output results/crossover_plot_h200_block32_saturated.png \
     --output-json results/crossover_policy_h200_block32_saturated.json
+
+# 512-token blocks — load sweep (fast)
+CUDA_VISIBLE_DEVICES=0 python scripts/sweep_load_cost.py \
+    --num-layers 48 --num-kv-heads 4 --head-dim 64 \
+    --block-tokens 512 --dtypes fp16,fp8 \
+    --concurrent-blocks 1,2,4,8,16,32,64,128 \
+    --with-compute-load --per-layer \
+    --output results/load_curve_h200_block512_conc.json
+
+# 512-token blocks — recompute sweep (~10 min)
+CUDA_VISIBLE_DEVICES=0 python scripts/sweep_recompute_cost.py \
+    --model Qwen/Qwen3-30B-A3B-Instruct-2507 --engine torch \
+    --kv-mode bf16 --block-size 512 \
+    --positions 512,1024,2048,4096,8192,16384,32768,65536,131072 \
+    --batch-sizes 1,2,4,8,16,32,64,128,256,512,1024 \
+    --warmup-iters 1 --measure-iters 3 \
+    --max-seq-len 131584 \
+    --output results/recompute_curve_h200_bf16_block512_batched.json
+
+# Crossover analysis — 512-token blocks
+python scripts/plot_crossover.py \
+    --recompute results/recompute_curve_h200_bf16_block512_batched.json \
+    --load results/load_curve_h200_block512_conc.json \
+    --block-size 512 \
+    --output results/crossover_plot_h200_block512.png \
+    --output-json results/crossover_policy_h200_block512.json
 ```
 
 ---
 
 ## Data Files
 
+### 32-token blocks
 - `results/recompute_curve_h200_bf16_block32_batched.json` — recompute sweep B=1..32
 - `results/recompute_curve_h200_bf16_block32_highbatch.json` — recompute sweep B=32..1024
-- `results/load_curve_h200_block32_conc.json` — load sweep with concurrency C=1..128
-- `results/crossover_policy_h200_block32_saturated.json` — crossover analysis output
+- `results/load_curve_h200_block32_conc.json` — load sweep C=1..128
+
+### 512-token blocks
+- `results/recompute_curve_h200_bf16_block512_batched.json` — recompute sweep B=1..1024
+- `results/load_curve_h200_block512_conc.json` — load sweep C=1..128
+
+### Analysis
+- `results/crossover_policy_h200_block32_saturated.json` — crossover output, block=32
+- `results/crossover_policy_h200_block512.json` — crossover output, block=512
