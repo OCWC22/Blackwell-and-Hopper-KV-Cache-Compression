@@ -12,6 +12,36 @@ The benchmark infrastructure includes a 45-row eval matrix covering four scenari
 
 **Limitations.** The "always offload, never recompute" policy was validated only for Qwen3-30B-A3B (a 128-expert MoE model) on H200 in PyTorch eager mode with 32-token blocks in the decode regime. This scoping matters for several reasons: (1) MoE models have high kernel launch overhead (~29 kernels/layer/token) that inflates recompute cost — dense models like LLaMA-70B or Mistral-7B would have lower recompute cost; (2) recompute was measured in PyTorch eager mode only, not with TensorRT-LLM fused kernels despite TRT-LLM being the claimed primary runtime; (3) the `sweep_recompute_cost.py` dtype map silently falls back to BF16 for FP8/NVFP4, so quantized recompute was never actually measured; (4) only 32-token blocks were tested (vLLM defaults to 16); (5) load cost assumes uncontested PCIe with pre-allocated pinned buffers — real multi-GPU serving has PCIe contention from other GPUs, NVMe, and NICs; (6) the analysis uses OOM as evidence for offload ("high-batch recompute is unreachable due to KV memory pressure, making offload even more necessary") which is circular — it proves the comparison is constrained, not that offload is universally better; (7) chunked prefill and full prefill workloads were not tested; (8) KVTC decompression cost, promotion policy overhead, and HBM fragmentation effects were not measured. For large MoE models on single-GPU H200/B200 with uncontested PCIe in decode workloads, always offload. For other configurations — dense models, fused-kernel runtimes, multi-GPU, prefill workloads — measure first.
 
+**Why Recomputation Can Be Competitive.** Despite the findings above, recomputation has become a viable eviction strategy in modern inference systems for several reasons:
+
+1. **vLLM V1 defaults to RECOMPUTE over SWAP** — the default preemption mode in vLLM V1 is recomputation because it has lower overhead in the V1 architecture [[vLLM Optimization Docs](https://docs.vllm.ai/en/stable/configuration/optimization/)].
+
+2. **Compute vs. I/O bandwidth crossover** — the "Cake" paper (arXiv 2410.03065) demonstrates that computing KV cache can be faster than loading from storage in many scenarios. Loading a 25 GB KV cache (10K tokens for Llama3-70B) takes ~8 seconds even with optimal NVMe bandwidth (~3 GB/s), while "computing KV cache with 100% A100 GPU power is comparable to loading from SSD or network" [[arXiv:2410.03065](https://arxiv.org/html/2410.03065v1)].
+
+3. **Quadratic vs. linear scaling** — recompute cost grows quadratically with sequence length (attention mechanism), while load cost grows linearly with KV cache size. This makes recomputation competitive for short-medium sequences, while caching wins for very long contexts [[arXiv:2410.03065 §3](https://arxiv.org/html/2410.03065v1)].
+
+4. **Storage tier speed is critical** — "if the storage tier is too slow, the overhead of transferring KV data back to the GPU may negate the benefits" [[BentoML KV Cache Offloading](https://bentoml.com/llm/inference-optimization/kv-cache-offloading)]. The transfer cost must be lower than recomputing from scratch.
+
+5. **Modern GPU compute abundance** — with A100/H100/H200/B200 GPUs, compute capacity often exceeds I/O bandwidth for many workloads, making recomputation increasingly competitive.
+
+**Further Research Required.** The recomputation vs. offload tradeoff needs additional investigation for future inference workloads:
+
+1. **Prefill vs. decode crossover analysis** — the current measurements focus on decode regime. Prefill workloads have different compute/memory characteristics and may shift the crossover point significantly.
+
+2. **Dense model recompute cost** — MoE models have high kernel launch overhead. Dense models (LLaMA-70B, Mistral-7B) need separate measurement to establish their crossover points.
+
+3. **Fused-kernel runtime impact** — TensorRT-LLM and other fused-kernel runtimes reduce kernel launch overhead, potentially making recompute more competitive. This was not measured.
+
+4. **Multi-GPU PCIe contention** — real serving systems have multiple GPUs, NVMe, and NICs competing for PCIe bandwidth. The uncontested PCIe assumption needs validation.
+
+5. **Chunked prefill scheduling** — vLLM's chunked prefill interleaves compute-bound prefill with memory-bound decode. How does this interact with eviction/recompute decisions?
+
+6. **Dynamic compute-I/O hybrid** — the "Cake" approach of simultaneously computing and loading KV cache [[arXiv:2410.03065](https://arxiv.org/html/2410.03065v1)] could be integrated with tiered KV cache systems.
+
+7. **Attention sink awareness** — vLLM's eviction policy ignores attention sink tokens, which can cause quality degradation [[vLLM Issue #36311](https://github.com/vllm-project/vllm/issues/36311)]. Smart eviction that preserves sinks while recomputing less important tokens needs study.
+
+8. **SGLang HiCache hierarchical policies** — SGLang's HiCache achieves 6× throughput improvement with hierarchical GPU/CPU/disk caching [[SGLang Blog](https://lmsys.org/blog/2025-09-10-sglang-hicache/)]. Integration with NVFP4/KVTC compression needs investigation.
+
 This repository is now split into two deliberate tracks:
 
 ## Tracks
