@@ -6,13 +6,38 @@ Use this file as the track-level instruction source for Claude Code. Shared skil
 
 Treat this as the Blackwell hackathon execution repo.
 
-Run this ladder in order:
+## Four Benchmark Scenarios
 
-1. vLLM BF16 baseline
-2. vLLM FP8 KV baseline
-3. vLLM + LMCache cold-tier reuse
-4. one promotion / reuse-policy ablation
-5. one-node run only after single-GPU success
+| Scenario | Question | Primary Metrics | scenario_id |
+|----------|----------|----------------|-------------|
+| **1** — Longer context, one GPU | How far can one GPU go in context length? | peak HBM, TTFT, max effective context | `scenario_1_longer_context_gpu` |
+| **2** — More sessions, one GPU | At fixed context, how many concurrent sessions? | max sessions at p95, throughput, TTFT under reuse | `scenario_2_more_sessions_gpu` |
+| **3** — Both, one GPU **(PRIMARY)** | Can one GPU serve many users with long prompts? | max sessions at large context, peak HBM, p95/p99 TPOT, TTFT on reused prefixes, quality delta | `scenario_3_longer_context_more_sessions_gpu` |
+| **4** — Both, one node | Does the same idea improve serving at node level? | aggregate sessions/node, aggregate throughput, aggregate HBM | `scenario_4_longer_context_more_sessions_node` |
+
+## Execution Order (8 steps)
+
+1. **Environment probe** — `scripts/env_probe.sh` → `results/env_probe.json`
+2. **Support gate** — determine FP8/NVFP4 KV support from probe
+3. **Stable JSON baseline harness** — verify `run_baseline.py` schema
+4. **Aligned single-GPU baselines** — BF16, FP8 at 8k and 32k
+5. **First vLLM + LMCache result** — `run_tiered_experiment.py` + `serve_and_bench.py` (Scenario 3)
+6. **One policy ablation** — demand vs eager promotion
+7. **One-node run** — only after single-GPU success (Scenario 4)
+8. **Decision memo** — comparison table + bottleneck summary + recommendation
+
+## Success Criteria (KPI-based)
+
+Achieve at least one of:
+- >=20% lower peak HBM vs best non-tiered baseline
+- Materially better TTFT on repeated-prefix traffic
+- >=25% more concurrent sessions at fixed p95 target
+- Materially longer effective context at same HBM budget
+
+While keeping:
+- p95 TPOT regression <= 10% vs best non-tiered baseline
+- p99 TPOT regression <= 15%
+- Quality delta <= 1% vs bf16 baseline
 
 ## Core Constraints
 
@@ -69,14 +94,7 @@ See `TIERED_KV_ARCHITECTURE.md` for the full architectural specification.
 
 ## Execution Priority
 
-1. vLLM baseline
-2. vLLM FP8 KV baseline
-3. vLLM + LMCache cold-tier reuse
-4. one promotion / reuse-policy ablation
-5. one-node run only after single-GPU success
-6. TensorRT-LLM / NVFP4 comparison only if time and support permit
-
-Do not block on undocumented NVFP4 hot-KV assumptions in vLLM.
+Follow the 8-step execution order above. Do not skip steps. Do not run multi-node before single-GPU and one-node are stable. TensorRT-LLM / NVFP4 comparison only if time and support permit. Do not block on undocumented NVFP4 hot-KV assumptions in vLLM.
 
 ## What To Read First
 

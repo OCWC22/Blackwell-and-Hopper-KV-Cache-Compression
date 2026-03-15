@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Tiered KV cache experiment — hot GPU tier + cold host-RAM tier.
+"""Tiered KV cache experiment — hot GPU tier + cold host-RAM tier (Scenario 3 primary path).
+
+This script is the Scenario 3 primary path: longer context + more sessions on one GPU
+with hot/cold KV lifecycle via vLLM FP8 + LMCache.
 
 Tests the hypothesis: a hot/cold KV lifecycle improves serving efficiency
 on reuse-heavy long-context workloads by reducing HBM pressure.
@@ -19,6 +22,7 @@ Usage:
     python scripts/run_tiered_experiment.py --use-lmcache --kv-mode fp8 --requests 10
     python scripts/run_tiered_experiment.py --use-lmcache --kv-mode nvfp4 --requests 10
     python scripts/run_tiered_experiment.py --promotion-policy eager --context-length 32768
+    python scripts/run_tiered_experiment.py --use-lmcache --kv-mode fp8 --cold-tier-codec kvtc
 """
 
 import argparse
@@ -58,6 +62,10 @@ def parse_args():
                    help="Recent window tokens never offloaded")
     p.add_argument("--cold-tier-backend", choices=["host_ram", "disk"], default="host_ram",
                    help="Cold tier storage backend")
+    p.add_argument("--cold-tier-codec", choices=["none", "kvtc"], default="none",
+                   help="Cold tier codec (kvtc integration is a skeleton; sets field in JSON)")
+    p.add_argument("--scenario-id", default=None,
+                   help="Scenario ID (default: scenario_3_longer_context_more_sessions_gpu)")
     p.add_argument("--engine", choices=["vllm"], default="vllm",
                    help="Inference engine")
     p.add_argument("--output", default=None,
@@ -344,7 +352,10 @@ def main():
             f"{args.context_length}_{ts}.json"
         )
 
-    print("=== Tiered KV Cache Experiment ===")
+    if args.scenario_id is None:
+        args.scenario_id = "scenario_3_longer_context_more_sessions_gpu"
+
+    print("=== Tiered KV Cache Experiment (Scenario 3 Primary Path) ===")
     print(f"Run ID: {run_id}")
     print(f"Model: {args.model}")
     print(f"Hot tier: {args.kv_mode}")
@@ -420,6 +431,8 @@ def main():
     result = make_result_template()
     result["run_id"] = run_id
     result["timestamp"] = datetime.now(timezone.utc).isoformat()
+    result["scenario_id"] = args.scenario_id
+    result["serving_mode"] = "offline"
 
     result["runtime"] = {
         "engine": "vllm",
@@ -450,6 +463,7 @@ def main():
         "enabled": True,
         "hot_tier_format": controller.kv_mode_actual,
         "cold_tier_format": args.cold_tier_backend,
+        "cold_tier_codec": args.cold_tier_codec,
         "lmcache_enabled": controller.lmcache_enabled,
         "promotion_policy": args.promotion_policy,
         "recent_window_tokens": args.protected_recent,

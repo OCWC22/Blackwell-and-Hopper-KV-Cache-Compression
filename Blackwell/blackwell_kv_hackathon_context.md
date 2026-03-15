@@ -1,6 +1,15 @@
 # Blackwell KV Runtime Hackathon Context
 
-Retrieved and updated on `2026-03-14`.
+Retrieved and updated on `2026-03-15`.
+
+## Four Benchmark Scenarios
+
+| Scenario | Question | scenario_id |
+|----------|----------|-------------|
+| 1 — Longer context, one GPU | How far can one GPU go? | `scenario_1_longer_context_gpu` |
+| 2 — More sessions, one GPU | How many concurrent sessions? | `scenario_2_more_sessions_gpu` |
+| **3 — Both, one GPU (PRIMARY)** | Many users + long prompts? | `scenario_3_longer_context_more_sessions_gpu` |
+| 4 — Both, one node | Same idea at node level? | `scenario_4_longer_context_more_sessions_node` |
 
 ## Thesis
 

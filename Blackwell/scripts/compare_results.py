@@ -2,10 +2,11 @@
 """Compare benchmark results and produce a markdown table + bottleneck summary.
 
 Reads result JSON files from results/ and produces:
-  1. Markdown comparison table
+  1. Markdown comparison table (grouped by scenario_id when available)
   2. Percentage deltas vs bf16 baseline
-  3. Bottleneck summary
-  4. Exact rerun commands
+  3. Bottleneck summary with serving KPI highlights
+  4. PRD target checks (HBM, sessions, latency regression, quality)
+  5. Exact rerun commands
 
 Usage:
     python scripts/compare_results.py
@@ -42,6 +43,7 @@ def load_results(results_dir, specific_files=None):
         files = sorted(
             glob.glob(os.path.join(results_dir, "baseline_*.json"))
             + glob.glob(os.path.join(results_dir, "tiered_*.json"))
+            + glob.glob(os.path.join(results_dir, "serve_*.json"))
         )
 
     results = []
@@ -77,7 +79,7 @@ def build_comparison_table(results):
         return "No results to compare.\n"
 
     headers = [
-        "Run ID", "KV Mode", "Tiered", "Context", "Requests",
+        "Run ID", "Scenario", "KV Mode", "Tiered", "Context", "Requests",
         "TTFT p50", "TTFT p95", "TPOT p50", "TPOT p95",
         "Throughput", "Peak HBM", "Power", "Cache Hit",
     ]
@@ -92,8 +94,13 @@ def build_comparison_table(results):
         kv_mode = model.get("kv_mode", model.get("kv_mode_requested", "?"))
         tiered = "yes" if t.get("enabled") else "no"
 
+        scenario = r.get("scenario_id", "—")
+        if scenario and len(scenario) > 15:
+            scenario = scenario.replace("scenario_", "S").replace("_longer_context_more_sessions_", "_lc_ms_").replace("_longer_context_", "_lc_").replace("_more_sessions_", "_ms_")
+
         rows.append([
             r.get("run_id", "?")[:40],
+            scenario[:20],
             kv_mode,
             tiered,
             str(model.get("context_length", "?")),
@@ -225,13 +232,28 @@ def bottleneck_summary(results):
                 lines.append(f"- **Cold→Warm TTFT improvement ({policy}):** "
                               f"{improvement:.1f}%")
 
+    # Serving KPI highlights
+    lines.append("\n### Serving KPI Highlights")
+    for r in results:
+        max_conc = r.get("metrics", {}).get("max_concurrent_at_p95_target")
+        tpj = r.get("metrics", {}).get("tokens_per_joule")
+        if max_conc is not None:
+            label = r.get("run_id", "?")[:30]
+            lines.append(f"- **Max concurrent at p95 target ({label}):** {max_conc}")
+        if tpj is not None and tpj > 0:
+            label = r.get("run_id", "?")[:30]
+            lines.append(f"- **Tokens/joule ({label}):** {tpj:.4f}")
+
     # PRD target check
     lines.append("\n### PRD Target Check")
-    bf16_hbm = None
+    bf16_baseline = None
     for r in non_tiered:
         if "bf16" in r.get("model", {}).get("kv_mode", ""):
-            bf16_hbm = r.get("metrics", {}).get("peak_hbm_gb")
+            bf16_baseline = r
             break
+
+    bf16_hbm = bf16_baseline.get("metrics", {}).get("peak_hbm_gb") if bf16_baseline else None
+    bf16_tpot_p95 = bf16_baseline.get("metrics", {}).get("tpot_ms_p95") if bf16_baseline else None
 
     if bf16_hbm and tiered:
         for t in tiered:
@@ -240,6 +262,36 @@ def bottleneck_summary(results):
                 reduction = (1 - t_hbm / bf16_hbm) * 100
                 met = "MET" if reduction >= 20 else "NOT MET"
                 lines.append(f"- HBM reduction: {reduction:.1f}% (target ≥20%: **{met}**)")
+
+    if bf16_tpot_p95 and tiered:
+        for t in tiered:
+            t_tpot = t.get("metrics", {}).get("tpot_ms_p95")
+            if t_tpot and bf16_tpot_p95 > 0:
+                regression = ((t_tpot - bf16_tpot_p95) / bf16_tpot_p95) * 100
+                met = "MET" if regression <= 10 else "NOT MET"
+                lines.append(f"- p95 TPOT regression: {regression:+.1f}% (target ≤10%: **{met}**)")
+
+    for t in tiered:
+        q_delta = t.get("metrics", {}).get("quality_delta_vs_best_baseline")
+        if q_delta is not None:
+            met = "MET" if abs(q_delta) <= 1.0 else "NOT MET"
+            lines.append(f"- Quality delta: {q_delta:.2f}% (target ≤1%: **{met}**)")
+
+    # Max concurrent sessions comparison
+    baseline_conc = None
+    tiered_conc = None
+    for r in non_tiered:
+        c = r.get("metrics", {}).get("max_concurrent_at_p95_target")
+        if c is not None and (baseline_conc is None or c > baseline_conc):
+            baseline_conc = c
+    for t in tiered:
+        c = t.get("metrics", {}).get("max_concurrent_at_p95_target")
+        if c is not None and (tiered_conc is None or c > tiered_conc):
+            tiered_conc = c
+    if baseline_conc and tiered_conc and baseline_conc > 0:
+        improvement = ((tiered_conc - baseline_conc) / baseline_conc) * 100
+        met = "MET" if improvement >= 25 else "NOT MET"
+        lines.append(f"- Session improvement: {improvement:+.1f}% (target ≥25%: **{met}**)")
 
     return "\n".join(lines)
 

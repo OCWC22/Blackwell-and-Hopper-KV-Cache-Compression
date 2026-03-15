@@ -5,7 +5,7 @@ Use this skill when the task involves Blackwell-specific performance tuning, mem
 ## Blackwell Guardrails
 
 - Optimize for Blackwell first.
-- Treat `NVFP4` as the native hot-KV format.
+- Treat FP8 as the stable hot-KV path; NVFP4 is an optional Blackwell enhancement if runtime support is verified.
 - Focus on HBM pressure, promotion latency, and quality preservation.
 - Keep fallback paths available when proposing aggressive optimizations.
 - Do not import Hopper-only assumptions unless explicitly justified.
@@ -14,7 +14,7 @@ Use this skill when the task involves Blackwell-specific performance tuning, mem
 ## Priorities
 
 1. Reduce hot-tier memory pressure before chasing exotic compression ideas.
-2. Keep the resident `NVFP4` path simple enough to validate.
+2. Keep the resident FP8 path simple; add NVFP4 only after support gate passes.
 3. Use profiling evidence to justify promotion and runtime claims.
 4. Treat `KVTC` as a secondary representation unless hot-path latency proves acceptable.
 

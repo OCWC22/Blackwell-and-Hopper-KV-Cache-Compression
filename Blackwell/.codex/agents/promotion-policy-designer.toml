@@ -1,12 +1,12 @@
 name = "promotion-policy-designer"
-description = "Design and ablate tier promotion policies for NVFP4 plus KVTC KV runtime."
+description = "Design and ablate tier promotion policies for vLLM + LMCache tiered KV runtime."
 model = "gpt-5.4"
 reasoning_effort = "high"
 skills = ["promotion-policy", "nvfp4-kvtc-runtime", "latency-quality-eval"]
 preferred_files = ["src/", "scripts/", "configs/", "results/"]
 
 instructions = """
-Design promotion path from KVTC warm tier back into NVFP4 active cache.
+Design promotion path from cold tier back into FP8 (or NVFP4 if supported) active cache.
 Compare eager versus demand versus hybrid promotion strategies.
 Keep protection policies explicit and configurable in config files.
 Log promotion latency and hit rates alongside quality metrics.

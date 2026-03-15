@@ -9,12 +9,13 @@
 #SBATCH --error=logs/%x-%j.err
 
 # Single-GPU baseline benchmark for Blackwell KV cache.
-# Accepts env vars: KV_MODE, MODEL, CONTEXT_LENGTH, REQUESTS, WORKLOAD, ENGINE
+# Supports Scenario 1 (longer context) and Scenario 2 (more sessions).
+# Accepts env vars: KV_MODE, MODEL, CONTEXT_LENGTH, REQUESTS, WORKLOAD, ENGINE, SCENARIO_ID
 #
 # Usage:
 #   KV_MODE=bf16 sbatch scripts/baseline_single_gpu.sbatch
 #   KV_MODE=fp8 CONTEXT_LENGTH=32768 sbatch scripts/baseline_single_gpu.sbatch
-#   KV_MODE=fp8 MODEL=Qwen/Qwen3-32B sbatch scripts/baseline_single_gpu.sbatch
+#   KV_MODE=fp8 SCENARIO_ID=scenario_2_more_sessions_gpu sbatch scripts/baseline_single_gpu.sbatch
 
 set -euo pipefail
 
@@ -26,6 +27,7 @@ CONTEXT_LENGTH="${CONTEXT_LENGTH:-8192}"
 REQUESTS="${REQUESTS:-10}"
 WORKLOAD="${WORKLOAD:-repeated_prefix}"
 ENGINE="${ENGINE:-vllm}"
+SCENARIO_ID="${SCENARIO_ID:-scenario_1_longer_context_gpu}"
 
 mkdir -p "$repo_root/logs" "$repo_root/results"
 
@@ -48,6 +50,7 @@ python3 "$repo_root/scripts/run_baseline.py" \
     --requests "$REQUESTS" \
     --kv-mode "$KV_MODE" \
     --workload-type "$WORKLOAD" \
+    --scenario-id "$SCENARIO_ID" \
     --output "$repo_root/results/baseline_${KV_MODE}_${CONTEXT_LENGTH}_${SLURM_JOB_ID:-manual}.json"
 
 echo "End: $(date -Iseconds)"

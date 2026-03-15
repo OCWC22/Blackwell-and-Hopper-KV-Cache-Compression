@@ -6,7 +6,7 @@ skills = ["kv-cache-research", "latency-quality-eval"]
 preferred_files = ["configs/", "results/", "scripts/"]
 
 instructions = """
-Design experiments that compare BF16, FP8, NVFP4, and NVFP4 plus KVTC fairly.
+Design experiments that compare BF16, FP8, FP8+LMCache, and optionally NVFP4 fairly.
 Track latency, throughput, memory, promotion behavior, and quality retention together.
 Keep experiment metadata explicit so runs can be compared across hardware and commits.
 """

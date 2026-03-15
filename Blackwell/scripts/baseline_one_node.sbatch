@@ -10,7 +10,8 @@
 
 # One-node multi-GPU baseline benchmark for Blackwell KV cache.
 # Uses tensor parallelism across all GPUs on a single node.
-# Accepts env vars: KV_MODE, MODEL, CONTEXT_LENGTH, REQUESTS, WORKLOAD, ENGINE, GPUS
+# Scenario 4: longer context + more sessions on one Slurm node.
+# Accepts env vars: KV_MODE, MODEL, CONTEXT_LENGTH, REQUESTS, WORKLOAD, ENGINE, GPUS, SCENARIO_ID
 #
 # Usage:
 #   KV_MODE=fp8 sbatch scripts/baseline_one_node.sbatch
@@ -28,6 +29,7 @@ REQUESTS="${REQUESTS:-10}"
 WORKLOAD="${WORKLOAD:-repeated_prefix}"
 ENGINE="${ENGINE:-vllm}"
 GPUS="${GPUS:-8}"
+SCENARIO_ID="${SCENARIO_ID:-scenario_4_longer_context_more_sessions_node}"
 
 mkdir -p "$repo_root/logs" "$repo_root/results"
 
@@ -52,6 +54,7 @@ python3 "$repo_root/scripts/run_baseline.py" \
     --kv-mode "$KV_MODE" \
     --workload-type "$WORKLOAD" \
     --tp "$GPUS" \
+    --scenario-id "$SCENARIO_ID" \
     --output "$repo_root/results/baseline_${KV_MODE}_${CONTEXT_LENGTH}_tp${GPUS}_${SLURM_JOB_ID:-manual}.json"
 
 echo "End: $(date -Iseconds)"

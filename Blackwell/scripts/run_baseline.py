@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Blackwell KV cache baseline benchmark.
+"""Blackwell KV cache baseline benchmark (Scenario 1 & 2).
+
+Scenario 1 — Longer context on one GPU: context sweep, concurrency=1
+Scenario 2 — More sessions on one GPU: fixed context, concurrency sweep
 
 Runs inference with configurable KV mode (bf16/fp8/nvfp4) and emits
 machine-readable JSON results with TTFT, TPOT, throughput, HBM, and power.
@@ -7,6 +10,7 @@ machine-readable JSON results with TTFT, TPOT, throughput, HBM, and power.
 Usage:
     python scripts/run_baseline.py --kv-mode bf16 --context-length 8192 --requests 10
     python scripts/run_baseline.py --kv-mode fp8 --context-length 32768 --requests 64 --concurrency 8
+    python scripts/run_baseline.py --kv-mode fp8 --scenario-id scenario_1_longer_context_gpu
 """
 
 import argparse
@@ -50,6 +54,12 @@ def parse_args():
                    help="Tensor parallel size")
     p.add_argument("--prefix-ratio", type=float, default=0.8,
                    help="Shared prefix ratio for repeated_prefix workload")
+    p.add_argument("--scenario-id", default=None,
+                   help="Scenario ID (auto-detected if not set). "
+                        "Values: scenario_1_longer_context_gpu, "
+                        "scenario_2_more_sessions_gpu, "
+                        "scenario_3_longer_context_more_sessions_gpu, "
+                        "scenario_4_longer_context_more_sessions_node")
     return p.parse_args()
 
 
@@ -231,6 +241,13 @@ def main():
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         args.output = f"results/baseline_{args.kv_mode}_{args.context_length}_{ts}.json"
 
+    # Auto-detect scenario_id if not provided
+    if args.scenario_id is None:
+        if args.concurrency > 1:
+            args.scenario_id = "scenario_2_more_sessions_gpu"
+        else:
+            args.scenario_id = "scenario_1_longer_context_gpu"
+
     print("=== Blackwell KV Baseline Benchmark ===")
     print(f"Run ID: {run_id}")
     print(f"Model: {args.model}")
@@ -279,6 +296,8 @@ def main():
     result = make_result_template()
     result["run_id"] = run_id
     result["timestamp"] = datetime.now(timezone.utc).isoformat()
+    result["scenario_id"] = args.scenario_id
+    result["serving_mode"] = "offline"
 
     result["runtime"] = {
         "engine": engine.name,
