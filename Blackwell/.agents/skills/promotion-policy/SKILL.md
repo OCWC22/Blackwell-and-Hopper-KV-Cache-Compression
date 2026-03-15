@@ -5,12 +5,12 @@ Use this skill when: designing tier promotion logic, configuring protected token
 ## Mental Model
 
 ```
-Tier 0: NVFP4 on HBM (active decode consumes from here)
+Tier 0: FP8 on HBM (active decode consumes from here; or NVFP4 if support-gated)
     ↑ promotion
-Tier 1: KVTC bitstream (host RAM / local SSD / remote store)
+Tier 1: LMCache-managed cold tier (host RAM / local SSD / remote store; optional KVTC codec)
 ```
 
-Promotion path: KVTC decode → FP8 staging buffer → NVFP4 pack → active blocks
+Promotion path: cold tier decode → FP8 restore → active blocks (or → NVFP4 pack if supported)
 
 Promotion cost is paid once on reuse, not every token.
 
@@ -75,12 +75,12 @@ Every promotion event should log:
 | A3 | Sink protection | off, 4 tokens, 8 tokens |
 | A4 | Compression ratio | 8×, 16×, 32× |
 
-Run each ablation against the NVFP4-only baseline measuring latency and quality together.
+Run each ablation against the FP8-only baseline (or best practical baseline) measuring latency and quality together.
 
 ## Things To Avoid
 
 - Compressing live decode tail
 - Promoting without logging latency and hit rate
 - Hiding policy configuration inside code instead of explicit config files
-- Running ablations without the NVFP4-only baseline for comparison
+- Running ablations without the FP8-only baseline for comparison
 - Optimizing promotion latency before having a working end-to-end path

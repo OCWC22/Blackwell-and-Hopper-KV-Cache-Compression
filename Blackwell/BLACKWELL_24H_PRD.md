@@ -15,6 +15,34 @@ while keeping:
 
 This repo is testing a KV-lifecycle controller around existing serving stacks (vLLM, LMCache), not building a new engine.
 
+## Four Benchmark Scenarios
+
+| Scenario | Question | KV Pressure | Primary Metrics |
+|----------|----------|-------------|-----------------|
+| **1** — Longer context, one GPU | How far can one GPU go? | KV bytes/session | peak HBM, TTFT, p95/p99 TPOT, max effective context |
+| **2** — More sessions, one GPU | How many concurrent sessions? | Live KV replicas | max sessions at p95, throughput, TTFT under reuse, cache hit rate |
+| **3** — Both, one GPU **(PRIMARY)** | Many users + long prompts? | Both context × sessions | max sessions at large context, peak HBM, p95/p99 TPOT, TTFT on reused prefixes, quality delta |
+| **4** — Both, one node | Same idea at node level? | Node aggregate | aggregate sessions/node, throughput, HBM, power efficiency |
+
+**Scenario 3 is the main goal. Scenario 4 is the follow-up. Scenarios 1 and 2 are explanatory baselines.**
+
+## Models
+
+| Role | Model |
+|------|-------|
+| Primary | `Qwen/Qwen3-30B-A3B` (or `Qwen/Qwen3-32B`) |
+| Smoke test | `Qwen/Qwen3-8B-Instruct` |
+
+## Workloads
+
+| Role | Workload | Definition |
+|------|----------|------------|
+| Primary | `repeated_prefix` | Same long system prompt / agent scaffold / document prefix, many requests with short differing suffixes |
+| Secondary | `multi_turn_reuse` | Multi-turn conversation reusing prior context |
+| Secondary | `repeated_long_doc` | Same long document, different questions |
+
+Primary contexts: 8192, 32768
+
 ## Primary KPI
 
 Achieve at least one of:
@@ -64,9 +92,9 @@ These are hackathon-grade thresholds, not production guarantees.
 - The benchmark ladder is honest (support-gate results recorded, no overclaims)
 - The repo can be handed to another engineer without oral explanation
 
-## Workstreams
+## 5-Hour Execution Plan
 
-### WS0: Support Gate and Environment (20 min)
+### Hour 0:00–0:30 — Environment Probe + Support Gate
 
 Run `scripts/env_probe.sh` to produce `results/env_probe.json`.
 
@@ -74,32 +102,31 @@ Must capture: GPU model, driver, CUDA, Python, vLLM version, TRT-LLM version, LM
 
 Decision: full ladder (NVFP4 supported) or reduced ladder (FP8 only) or stop (neither).
 
-### WS1: Baseline Harness (45 min)
+Verify baseline harness: `python scripts/run_baseline.py --kv-mode bf16 --context-length 8192 --requests 2`
 
-Harden `scripts/run_baseline.py` to accept `--model`, `--context-length`, `--requests`, `--concurrency`, `--kv-mode`, `--workload-type`, `--engine`, `--output`.
+### Hour 0:30–1:30 — Aligned Single-GPU Baselines (Scenarios 1 & 2)
 
-Must emit stable JSON with: TTFT p50/p95, TPOT p50/p95/p99, throughput, peak HBM, GPU power, cache hit rate, quality placeholder.
+Model: `Qwen/Qwen3-30B-A3B` (smoke test: `Qwen/Qwen3-8B-Instruct`)
 
-Verify with: `python scripts/run_baseline.py --kv-mode bf16 --context-length 8192 --requests 2`
+**Scenario 1 runs (context sweep, concurrency=1):**
 
-### WS2: Aligned Baselines (60 min)
+| Variant | Context | scenario_id |
+|---------|---------|-------------|
+| bf16 | 8192 | scenario_1_longer_context_gpu |
+| fp8 | 8192 | scenario_1_longer_context_gpu |
+| bf16 | 32768 | scenario_1_longer_context_gpu |
+| fp8 | 32768 | scenario_1_longer_context_gpu |
 
-Model: `Qwen/Qwen3-30B-A3B` (fallback: `Qwen/Qwen3-32B`)
+**Scenario 2 runs (concurrency sweep, context=8k):**
 
-Workload: `repeated_prefix`
+| Variant | Concurrency | scenario_id |
+|---------|-------------|-------------|
+| vLLM baseline | 1,2,4,8,16,32 | scenario_2_more_sessions_gpu |
+| vLLM + LMCache | 1,2,4,8,16,32 | scenario_2_more_sessions_gpu |
 
-| Variant | Context | Runs |
-|---------|---------|------|
-| bf16 | 8192 | 1 |
-| fp8 | 8192 | 1 |
-| fp8 + lmcache | 8192 | 1 |
-| bf16 | 32768 | 1 |
-| fp8 | 32768 | 1 |
-| fp8 + lmcache | 32768 | 1 |
+Output: `results/baseline_{variant}_{context}_*.json`
 
-Output: `results/baseline_{variant}_{context}.json`
-
-### WS3: First Tiered Experiment — vLLM + LMCache (75 min)
+### Hour 1:30–3:00 — First vLLM + LMCache Result (Scenario 3 — PRIMARY)
 
 Run vLLM with real LMCache cold-tier reuse via `LMCacheConnectorV1`:
 - Hot tier: vLLM FP8 KV cache on GPU (or NVFP4 if support-gated)
@@ -108,6 +135,16 @@ Run vLLM with real LMCache cold-tier reuse via `LMCacheConnectorV1`:
 - Config: `LMCACHE_CONFIG_FILE=configs/lmcache_config.yaml`
 - Promotion policy: demand (default)
 - Protection: 4 sink tokens, 128 recent tokens
+
+**Scenario 3 benchmark matrix:**
+
+| Variant | Context | Concurrency | Workload | scenario_id |
+|---------|---------|-------------|----------|-------------|
+| vLLM baseline | 8k | 4,8,16 | repeated_prefix | scenario_3_longer_context_more_sessions_gpu |
+| vLLM + LMCache | 8k | 4,8,16 | repeated_prefix | scenario_3_longer_context_more_sessions_gpu |
+| vLLM baseline | 32k | 4,8,16 | repeated_prefix | scenario_3_longer_context_more_sessions_gpu |
+| vLLM + LMCache | 32k | 4,8,16 | repeated_prefix | scenario_3_longer_context_more_sessions_gpu |
+| optional LMCache + KVTC | 8k | 4,8,16 | repeated_prefix | scenario_3_longer_context_more_sessions_gpu |
 
 Commands:
 ```bash
@@ -123,46 +160,54 @@ Must record: offload latency, restore/promotion latency, cold store size, cache 
 
 This step validates the serving economics hypothesis. The question is whether KV reuse via LMCache improves TTFT and concurrency, not whether offloading exists.
 
-### WS4: Policy Ablation (45 min)
+### Hour 3:00–3:45 — Policy Ablation
 
 Compare demand promotion vs eager promotion using the same tiered experiment script.
 
 Output: two tiered result JSONs, one comparison via `scripts/compare_results.py`.
 
-### WS5: One-Node Scaling (30 min, only after WS2 succeeds)
+### Hour 3:45–4:30 — One-Node Run (Scenario 4, only after Scenario 3 success)
 
-Submit `scripts/baseline_single_gpu.sbatch` for bf16/fp8/nvfp4 via env vars.
+**Scenario 4 benchmark matrix (same as Scenario 3, one full node):**
 
-If single-GPU works, submit `scripts/baseline_one_node.sbatch` for the same matrix.
+| Variant | Context | Concurrency | scenario_id |
+|---------|---------|-------------|-------------|
+| vLLM baseline | 8k, 32k | 4,8,16 | scenario_4_longer_context_more_sessions_node |
+| vLLM + LMCache | 8k, 32k | 4,8,16 | scenario_4_longer_context_more_sessions_node |
 
-Do not change multiple variables at once.
+Submit `scripts/baseline_one_node.sbatch` only after single-GPU success. Do not change multiple variables at once.
 
-### WS6: Decision Memo (30 min)
+### Hour 4:30–5:00 — Decision Memo + Artifacts
 
 Produce:
 - `results/comparison.md` — benchmark table from `scripts/compare_results.py`
-- One-paragraph bottleneck analysis
+- `results/benchmark_summary.md` — one-page summary of findings
+- `results/bottleneck_summary.md` — key bottlenecks and recommendations
 - One-paragraph continue/pivot/kill recommendation
-- Exact rerun commands
+- Exact rerun commands for every result
 
-## Evaluation Matrix
+## Full Benchmark Matrix
 
-Minimum viable matrix:
+### Scenario 1 — Longer context on one GPU
+- Context sweep: 8k, 32k, 64k
+- Concurrency: 1 (fixed)
+- Compare: vLLM baseline, vLLM FP8 KV, vLLM + LMCache, optional + KVTC
 
-| Variant | Model | Context | Workload | Notes |
-|---------|-------|---------|----------|-------|
-| bf16_default | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | baseline ceiling |
-| fp8_kv | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | stable hot-tier path |
-| fp8_kv + lmcache | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | cold-tier reuse |
-| tiered_demand | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | demand promotion policy |
-| tiered_eager | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | eager promotion policy |
-| bf16_default | Qwen/Qwen3-30B-A3B | 32768 | repeated_prefix | long-context baseline |
-| fp8_kv | Qwen/Qwen3-30B-A3B | 32768 | repeated_prefix | long-context fp8 |
-| fp8_kv + lmcache | Qwen/Qwen3-30B-A3B | 32768 | repeated_prefix | long-context cold-tier reuse |
+### Scenario 2 — More sessions on one GPU
+- Context: 8k (fixed)
+- Concurrency sweep: 1, 2, 4, 8, 16, 32
+- Compare: vLLM baseline, vLLM + LMCache
 
-Concurrency / request-rate sweep (stop when p95 becomes unacceptable):
-- `request_rate`: 1, 2, 5, 10, 20
-- `max_concurrency`: 1, 2, 4, 8, 16, 32
+### Scenario 3 — Longer context + more sessions on one GPU (PRIMARY)
+- Contexts: 8k, 32k
+- Concurrency: 4, 8, 16
+- Workload: repeated_prefix
+- Compare: vLLM baseline, vLLM + LMCache, optional LMCache + KVTC
+
+### Scenario 4 — Longer context + more sessions on one node
+- Same as Scenario 3
+- One full node (8x GPUs)
+- Only run after Scenario 3 is stable
 
 ## Kill Criteria
 

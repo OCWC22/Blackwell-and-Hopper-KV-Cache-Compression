@@ -1,6 +1,6 @@
 ---
 name: blackwell-runtime-optimizer
-description: Guide Blackwell-native NVFP4 plus KVTC runtime work without drifting into unsupported assumptions.
+description: Guide Blackwell vLLM + LMCache tiered KV runtime work without drifting into unsupported assumptions.
 tools:
   - Read
   - Grep

@@ -1,9 +1,35 @@
-variant	model	context_length	batch_size	workload	notes
-bf16_default	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	baseline-ceiling
-fp8_kv	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	stable-hot-tier
-fp8_kv+lmcache	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	cold-tier-reuse
-tiered_demand	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	demand-promotion-policy
-tiered_eager	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	eager-promotion-policy
-bf16_default	Qwen/Qwen3-30B-A3B	32768	1	repeated_prefix	long-context-baseline
-fp8_kv	Qwen/Qwen3-30B-A3B	32768	1	repeated_prefix	long-context-fp8
-fp8_kv+lmcache	Qwen/Qwen3-30B-A3B	32768	1	repeated_prefix	long-context-cold-tier-reuse
+scenario_id	variant	model	context_length	concurrency	workload	notes
+scenario_1_longer_context_gpu	bf16_default	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	baseline-ceiling
+scenario_1_longer_context_gpu	fp8_kv	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	stable-hot-tier
+scenario_1_longer_context_gpu	bf16_default	Qwen/Qwen3-30B-A3B	32768	1	repeated_prefix	long-context-baseline
+scenario_1_longer_context_gpu	fp8_kv	Qwen/Qwen3-30B-A3B	32768	1	repeated_prefix	long-context-fp8
+scenario_1_longer_context_gpu	fp8_kv+lmcache	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	cold-tier-reuse
+scenario_1_longer_context_gpu	fp8_kv+lmcache	Qwen/Qwen3-30B-A3B	32768	1	repeated_prefix	long-context-cold-tier
+scenario_1_longer_context_gpu	bf16_default	Qwen/Qwen3-30B-A3B	65536	1	repeated_prefix	max-context-probe
+scenario_2_more_sessions_gpu	fp8_kv	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	concurrency-baseline
+scenario_2_more_sessions_gpu	fp8_kv	Qwen/Qwen3-30B-A3B	8192	2	repeated_prefix	concurrency-2
+scenario_2_more_sessions_gpu	fp8_kv	Qwen/Qwen3-30B-A3B	8192	4	repeated_prefix	concurrency-4
+scenario_2_more_sessions_gpu	fp8_kv	Qwen/Qwen3-30B-A3B	8192	8	repeated_prefix	concurrency-8
+scenario_2_more_sessions_gpu	fp8_kv	Qwen/Qwen3-30B-A3B	8192	16	repeated_prefix	concurrency-16
+scenario_2_more_sessions_gpu	fp8_kv	Qwen/Qwen3-30B-A3B	8192	32	repeated_prefix	concurrency-32
+scenario_2_more_sessions_gpu	fp8_kv+lmcache	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	lmcache-concurrency-baseline
+scenario_2_more_sessions_gpu	fp8_kv+lmcache	Qwen/Qwen3-30B-A3B	8192	4	repeated_prefix	lmcache-concurrency-4
+scenario_2_more_sessions_gpu	fp8_kv+lmcache	Qwen/Qwen3-30B-A3B	8192	16	repeated_prefix	lmcache-concurrency-16
+scenario_3_longer_context_more_sessions_gpu	fp8_kv	Qwen/Qwen3-30B-A3B	8192	4	repeated_prefix	scenario3-baseline-8k-c4
+scenario_3_longer_context_more_sessions_gpu	fp8_kv	Qwen/Qwen3-30B-A3B	8192	8	repeated_prefix	scenario3-baseline-8k-c8
+scenario_3_longer_context_more_sessions_gpu	fp8_kv	Qwen/Qwen3-30B-A3B	8192	16	repeated_prefix	scenario3-baseline-8k-c16
+scenario_3_longer_context_more_sessions_gpu	fp8_kv	Qwen/Qwen3-30B-A3B	32768	4	repeated_prefix	scenario3-baseline-32k-c4
+scenario_3_longer_context_more_sessions_gpu	fp8_kv	Qwen/Qwen3-30B-A3B	32768	8	repeated_prefix	scenario3-baseline-32k-c8
+scenario_3_longer_context_more_sessions_gpu	fp8_kv	Qwen/Qwen3-30B-A3B	32768	16	repeated_prefix	scenario3-baseline-32k-c16
+scenario_3_longer_context_more_sessions_gpu	fp8_kv+lmcache	Qwen/Qwen3-30B-A3B	8192	4	repeated_prefix	scenario3-tiered-8k-c4
+scenario_3_longer_context_more_sessions_gpu	fp8_kv+lmcache	Qwen/Qwen3-30B-A3B	8192	8	repeated_prefix	scenario3-tiered-8k-c8
+scenario_3_longer_context_more_sessions_gpu	fp8_kv+lmcache	Qwen/Qwen3-30B-A3B	8192	16	repeated_prefix	scenario3-tiered-8k-c16
+scenario_3_longer_context_more_sessions_gpu	fp8_kv+lmcache	Qwen/Qwen3-30B-A3B	32768	4	repeated_prefix	scenario3-tiered-32k-c4
+scenario_3_longer_context_more_sessions_gpu	fp8_kv+lmcache	Qwen/Qwen3-30B-A3B	32768	8	repeated_prefix	scenario3-tiered-32k-c8
+scenario_3_longer_context_more_sessions_gpu	fp8_kv+lmcache	Qwen/Qwen3-30B-A3B	32768	16	repeated_prefix	scenario3-tiered-32k-c16
+scenario_3_longer_context_more_sessions_gpu	tiered_demand	Qwen/Qwen3-30B-A3B	8192	8	repeated_prefix	demand-promotion
+scenario_3_longer_context_more_sessions_gpu	tiered_eager	Qwen/Qwen3-30B-A3B	8192	8	repeated_prefix	eager-promotion
+scenario_4_longer_context_more_sessions_node	fp8_kv	Qwen/Qwen3-30B-A3B	8192	8	repeated_prefix	node-baseline-8k
+scenario_4_longer_context_more_sessions_node	fp8_kv+lmcache	Qwen/Qwen3-30B-A3B	8192	8	repeated_prefix	node-tiered-8k
+scenario_4_longer_context_more_sessions_node	fp8_kv	Qwen/Qwen3-30B-A3B	32768	8	repeated_prefix	node-baseline-32k
+scenario_4_longer_context_more_sessions_node	fp8_kv+lmcache	Qwen/Qwen3-30B-A3B	32768	8	repeated_prefix	node-tiered-32k

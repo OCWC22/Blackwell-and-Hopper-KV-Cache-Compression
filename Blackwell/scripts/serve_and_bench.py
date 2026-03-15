@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Online serving benchmark — concurrent user sweeps with vLLM + LMCache.
 
+Supports Scenario 2 (more sessions on one GPU), Scenario 3 (longer context +
+more sessions on one GPU), and Scenario 4 (one node) depending on configuration.
+
 Answers the primary hackathon question:
   At the same p95 latency target, how many more concurrent sessions can
   one B200 GPU (or one 8xB200 node) serve with tiered KV?
@@ -17,13 +20,13 @@ Usage:
     # Single-GPU FP8 baseline (no LMCache)
     python scripts/serve_and_bench.py --kv-mode fp8 --tp 1
 
-    # Single-GPU FP8 + LMCache cold tier
+    # Single-GPU FP8 + LMCache cold tier (Scenario 3)
     python scripts/serve_and_bench.py --kv-mode fp8 --use-lmcache --tp 1
 
     # Single-GPU NVFP4 + LMCache (support-gated)
     python scripts/serve_and_bench.py --kv-mode nvfp4 --use-lmcache --tp 1
 
-    # Full 8xB200 node
+    # Full 8xB200 node (Scenario 4)
     python scripts/serve_and_bench.py --kv-mode fp8 --use-lmcache --tp 8
 
     # Concurrency sweep
@@ -80,6 +83,8 @@ def parse_args():
     p.add_argument("--output", default=None, help="Output JSON path")
     p.add_argument("--run-id", default=None)
     p.add_argument("--gpu-memory-utilization", type=float, default=0.90)
+    p.add_argument("--scenario-id", default=None,
+                   help="Scenario ID (auto-detected from tp and lmcache flags)")
     return p.parse_args()
 
 
@@ -247,6 +252,15 @@ async def run_sweep(args):
     """Run the full concurrency sweep."""
     concurrency_levels = [int(c) for c in args.sweep_concurrency.split(",")]
 
+    # Auto-detect scenario_id
+    if args.scenario_id is None:
+        if args.tp > 1:
+            args.scenario_id = "scenario_4_longer_context_more_sessions_node"
+        elif args.use_lmcache:
+            args.scenario_id = "scenario_3_longer_context_more_sessions_gpu"
+        else:
+            args.scenario_id = "scenario_2_more_sessions_gpu"
+
     print(f"=== Online Serving Benchmark ===")
     print(f"Model: {args.model}")
     print(f"KV mode: {args.kv_mode}")
@@ -370,6 +384,8 @@ async def run_sweep(args):
         result = make_result_template()
         result["run_id"] = run_id
         result["timestamp"] = datetime.now(timezone.utc).isoformat()
+        result["scenario_id"] = args.scenario_id
+        result["serving_mode"] = "online"
 
         result["runtime"] = {
             "engine": "vllm",

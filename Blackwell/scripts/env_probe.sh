@@ -2,6 +2,10 @@
 # Environment probe for Blackwell KV runtime benchmarking.
 # Writes structured JSON to results/env_probe.json.
 # Run this BEFORE any benchmark to establish the support gate.
+#
+# Usage:
+#   bash scripts/env_probe.sh                          # default output
+#   bash scripts/env_probe.sh results/env_probe.json   # explicit path
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -87,13 +91,34 @@ def check_fp8_kv_support():
 
 
 def check_nvfp4_kv_support():
-    """Heuristic check for NVFP4 KV support in vLLM or TRT-LLM."""
+    """Heuristic check for NVFP4 KV support in vLLM or TRT-LLM.
+
+    Checks for NVFp4 class names and kv_cache_dtype references in vLLM source.
+    """
     try:
         from vllm.engine.arg_utils import EngineArgs
         import inspect
         src = inspect.getsource(EngineArgs)
         if "nvfp4" in src.lower() or "fp4" in src.lower():
             return True
+        # Check for NVFp4 factory or dtype classes
+        try:
+            import vllm
+            vllm_src_dir = os.path.dirname(inspect.getfile(vllm))
+            for dirpath, _, filenames in os.walk(vllm_src_dir):
+                for fname in filenames:
+                    if fname.endswith('.py'):
+                        try:
+                            with open(os.path.join(dirpath, fname)) as f:
+                                content = f.read()
+                            if 'NVFp4' in content or 'nvfp4' in content.lower():
+                                return True
+                        except Exception:
+                            continue
+                # Only check top-level vllm package to keep probe fast
+                break
+        except Exception:
+            pass
         return "unknown"
     except Exception:
         pass

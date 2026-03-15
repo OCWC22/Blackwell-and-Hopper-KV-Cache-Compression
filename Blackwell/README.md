@@ -13,17 +13,25 @@ The architecture:
 
 We are not replacing `vLLM` or `LMCache` — they are the runtime and the reuse layer respectively.
 
-## 24-Hour Validation Ladder
+## Four Benchmark Scenarios
 
-Run the work in this order:
+| Scenario | Question | Primary |
+|----------|----------|---------|
+| 1 — Longer context, one GPU | How far can one GPU go in context length? | No |
+| 2 — More sessions, one GPU | How many concurrent sessions at fixed context? | No |
+| **3 — Both, one GPU** | **Can one GPU serve many users with long prompts?** | **Yes** |
+| 4 — Both, one node | Does the same idea improve at node level? | Follow-up |
 
-1. vLLM BF16 baseline
-2. vLLM FP8 KV baseline
-3. vLLM + LMCache cold-tier reuse
-4. one promotion / reuse-policy ablation (demand vs eager)
-5. one-node run only after single-GPU success
+## 5-Hour Execution Plan
 
-Do not block on undocumented NVFP4 hot-KV assumptions in vLLM.
+1. Environment probe + support gate (30 min)
+2. Aligned single-GPU baselines — BF16, FP8 at 8k/32k (60 min)
+3. First vLLM + LMCache result — Scenario 3 (90 min)
+4. Policy ablation — demand vs eager (45 min)
+5. One-node run — only after single-GPU success (45 min)
+6. Decision memo + artifacts (30 min)
+
+Do not block on undocumented NVFP4 hot-KV assumptions in vLLM. Do not run multi-node before single-GPU success.
 
 If we cannot beat or match the practical baselines on latency and quality, there is no reason to keep going.
 

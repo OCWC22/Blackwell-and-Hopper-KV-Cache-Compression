@@ -96,10 +96,16 @@ class PowerSampler(threading.Thread):
 
 
 def make_result_template():
-    """Return the canonical result JSON template."""
+    """Return the canonical result JSON template.
+
+    Every benchmark JSON must include scenario_id, serving_mode, and
+    cold_tier_codec so results are traceable to the four benchmark scenarios.
+    """
     return {
         "run_id": "",
         "timestamp": datetime.now(timezone.utc).isoformat(),
+        "scenario_id": "",
+        "serving_mode": "offline",
         "runtime": {
             "engine": "",
             "engine_version": "",
@@ -125,6 +131,7 @@ def make_result_template():
             "enabled": False,
             "hot_tier_format": None,
             "cold_tier_format": None,
+            "cold_tier_codec": "none",
             "promotion_policy": None,
             "recent_window_tokens": None,
             "sink_tokens_protected": None

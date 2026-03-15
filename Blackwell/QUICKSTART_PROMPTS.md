@@ -11,7 +11,7 @@ Use these prompts with Codex or Claude Code. Each requires exact files, exact JS
 
 ---
 
-## 1. Environment Probe
+## 1. Environment Probe (Pre-scenario)
 
 ```text
 Run the environment probe and verify the support gate.
@@ -20,22 +20,27 @@ Files to read:
 - CLAUDE.md (support gate section)
 - scripts/env_probe.sh
 
+Files to edit:
+- None (probe only)
+
 Action:
 - Run: bash scripts/env_probe.sh
 - Verify results/env_probe.json exists and has all fields
 - Report the support gate result: is_blackwell, nvfp4_kv_supported, fp8_kv_supported, recommended_hot_tier
 
-Expected output:
-- results/env_probe.json
+Expected JSON output:
+- results/env_probe.json (must contain scenario_id-ready support gate)
 
 Rerun command:
 - bash scripts/env_probe.sh
 
 Bottleneck note:
 - If not Blackwell or no KV dtype support, document what blocked and pivot to bf16.
+
+Rules: no engine rewrite, no multi-node before single-GPU success.
 ```
 
-## 2. Aligned Baselines
+## 2. Aligned Baselines (Scenarios 1 & 2)
 
 ```text
 Run BF16 and FP8 baselines and produce a comparison table.
@@ -45,50 +50,60 @@ Files to read:
 - scripts/compare_results.py
 - results/env_probe.json (must exist)
 
+Files to edit:
+- None (run only)
+
 Actions:
-1. python scripts/run_baseline.py --kv-mode bf16 --context-length 8192 --requests 10 --output results/baseline_bf16_8192.json
-2. python scripts/run_baseline.py --kv-mode fp8 --context-length 8192 --requests 10 --output results/baseline_fp8_8192.json
+1. python scripts/run_baseline.py --kv-mode bf16 --context-length 8192 --requests 10 --scenario-id scenario_1_longer_context_gpu --output results/baseline_bf16_8192.json
+2. python scripts/run_baseline.py --kv-mode fp8 --context-length 8192 --requests 10 --scenario-id scenario_1_longer_context_gpu --output results/baseline_fp8_8192.json
 3. python scripts/compare_results.py --output results/comparison.md
 
-Expected outputs:
-- results/baseline_bf16_8192.json
-- results/baseline_fp8_8192.json
+Expected JSON outputs:
+- results/baseline_bf16_8192.json (must contain scenario_id field)
+- results/baseline_fp8_8192.json (must contain scenario_id field)
 - results/comparison.md
 
 Benchmark table:
-- compare_results.py produces the table automatically
+- compare_results.py produces the table automatically with scenario column
 
 Bottleneck note:
 - Is FP8 faster or slower than BF16? What's the HBM difference? If FP8 regresses, why?
 
 Rerun commands:
 - Exact commands above
+
+Rules: no engine rewrite, no multi-node before single-GPU success.
 ```
 
-## 3. LMCache Cold-Tier Reuse
+## 3. LMCache Cold-Tier Reuse (Scenario 3 — PRIMARY)
 
 ```text
-Run vLLM + LMCache cold-tier reuse on repeated-prefix workload.
+Run vLLM + LMCache cold-tier reuse on repeated-prefix workload. This is the Scenario 3 primary path.
 
 Files to read:
 - scripts/run_tiered_experiment.py
 - TIERED_KV_ARCHITECTURE.md
 
+Files to edit:
+- None (run only)
+
 Actions:
-1. python scripts/run_tiered_experiment.py --kv-mode fp8 --promotion-policy demand --cold-tier-backend host_ram --context-length 8192 --requests 10 --output results/tiered_fp8_lmcache_8192.json
+1. python scripts/run_tiered_experiment.py --use-lmcache --kv-mode fp8 --promotion-policy demand --cold-tier-backend host_ram --context-length 8192 --requests 10 --scenario-id scenario_3_longer_context_more_sessions_gpu --output results/tiered_fp8_lmcache_8192.json
 2. python scripts/compare_results.py --output results/comparison.md
 
-Expected output:
-- results/tiered_fp8_lmcache_8192.json
+Expected JSON output:
+- results/tiered_fp8_lmcache_8192.json (must contain scenario_id, cold_tier_codec fields)
 - Updated results/comparison.md
 
 Benchmark table:
-- BF16 vs FP8 vs FP8+LMCache
+- BF16 vs FP8 vs FP8+LMCache with scenario column
 
 Bottleneck note:
 - Does LMCache reuse improve TTFT on repeated-prefix traffic?
 - What is the cache hit rate? What is the restore/promotion latency?
 - Is the TTFT improvement meaningful enough to justify the cold-tier overhead?
+
+Rules: no engine rewrite, no multi-node before single-GPU success.
 ```
 
 ## 4. Policy Ablation — Demand vs Eager
@@ -116,34 +131,39 @@ Bottleneck note:
 - Is eager pre-warming worth the upfront cost?
 ```
 
-## 5. Concurrency / Request-Rate Sweep
+## 5. Concurrency Sweep (Scenario 3 serving mode)
 
 ```text
-Run a concurrency and request-rate sweep to answer: at the same p95 latency target, how much higher concurrency can one GPU sustain with LMCache reuse enabled?
+Run a concurrency sweep to answer: at the same p95 latency target, how much higher concurrency can one GPU sustain with LMCache reuse enabled?
 
 Files to read:
 - results/tiered_fp8_lmcache_8192.json
-- scripts/run_tiered_experiment.py
+- scripts/serve_and_bench.py
+
+Files to edit:
+- None (run only)
 
 Actions:
-1. For each concurrency in [1, 2, 4, 8, 16, 32]:
-   python scripts/run_tiered_experiment.py --kv-mode fp8 --promotion-policy demand --cold-tier-backend host_ram --context-length 8192 --concurrency $C --output results/sweep_fp8_lmcache_c${C}.json
-2. Stop when p95 TPOT becomes unacceptable (>10% regression vs baseline)
+1. python scripts/serve_and_bench.py --kv-mode fp8 --sweep-concurrency 1,2,4,8,16,32 --p95-tpot-limit-ms 100 --scenario-id scenario_3_longer_context_more_sessions_gpu --output results/serve_fp8_baseline.json
+2. python scripts/serve_and_bench.py --kv-mode fp8 --use-lmcache --sweep-concurrency 1,2,4,8,16,32 --p95-tpot-limit-ms 100 --scenario-id scenario_3_longer_context_more_sessions_gpu --output results/serve_fp8_lmcache.json
 3. python scripts/compare_results.py --output results/comparison.md
 
-Expected output:
-- results/sweep_fp8_lmcache_c*.json
+Expected JSON outputs:
+- results/serve_fp8_baseline.json (serving_mode: online, scenario_id set)
+- results/serve_fp8_lmcache.json
 - Updated results/comparison.md
 
 Benchmark table:
-- Concurrency vs TTFT, TPOT p95, throughput, peak HBM
+- Concurrency vs TTFT, TPOT p95, throughput, peak HBM, max_concurrent_at_p95_target
 
 Bottleneck note:
 - At what concurrency does p95 blow up?
 - How many more concurrent sessions does LMCache reuse enable?
+
+Rules: no engine rewrite, no multi-node before single-GPU success.
 ```
 
-## 6. Slurm Sweep
+## 6. Slurm Sweep (Scenarios 1 & 4)
 
 ```text
 Submit baseline jobs via Slurm for bf16 and fp8.
@@ -153,23 +173,28 @@ Files to read:
 - scripts/baseline_one_node.sbatch
 - configs/blackwell_eval_matrix.tsv
 
+Files to edit:
+- None (run only)
+
 Actions:
-1. KV_MODE=bf16 sbatch scripts/baseline_single_gpu.sbatch
-2. KV_MODE=fp8 sbatch scripts/baseline_single_gpu.sbatch
+1. KV_MODE=bf16 SCENARIO_ID=scenario_1_longer_context_gpu sbatch scripts/baseline_single_gpu.sbatch
+2. KV_MODE=fp8 SCENARIO_ID=scenario_1_longer_context_gpu sbatch scripts/baseline_single_gpu.sbatch
 3. Wait for completion, check logs/
 4. python scripts/compare_results.py --output results/comparison.md
 
-Expected outputs:
-- results/baseline_bf16_8192_<jobid>.json
-- results/baseline_fp8_8192_<jobid>.json
+Expected JSON outputs:
+- results/baseline_bf16_8192_<jobid>.json (with scenario_id)
+- results/baseline_fp8_8192_<jobid>.json (with scenario_id)
 - logs/kv-single-gpu-<jobid>.out
 
-Only after single-GPU succeeds:
-5. KV_MODE=fp8 sbatch scripts/baseline_one_node.sbatch
+Only after single-GPU succeeds (Scenario 4):
+5. KV_MODE=fp8 SCENARIO_ID=scenario_4_longer_context_more_sessions_node sbatch scripts/baseline_one_node.sbatch
 
 Bottleneck note:
 - Did Slurm jobs complete cleanly? Any resource contention?
 - Is one-node TP scaling linear or sublinear?
+
+Rules: no engine rewrite, no multi-node before single-GPU success.
 ```
 
 ## 7. Decision Memo

@@ -22,16 +22,33 @@ Runtime honesty rule:
 This repo is not building a new inference engine.
 This repo is testing a KV-lifecycle controller around existing serving stacks (vLLM, LMCache).
 
+## Four Benchmark Scenarios
+
+The four scenarios are the organizing structure for this repo. Scenario 3 is the primary target.
+
+| Scenario | Question | KV Pressure | scenario_id |
+|----------|----------|-------------|-------------|
+| **1** — Longer context on one GPU | How far can one GPU go in context length? | KV bytes per session | `scenario_1_longer_context_gpu` |
+| **2** — More sessions on one GPU | At fixed context, how many concurrent sessions? | Number of live KV replicas | `scenario_2_more_sessions_gpu` |
+| **3** — Longer context + more sessions on one GPU | Can one GPU serve many users with long prompts? (PRIMARY) | KV scales with both context and sessions | `scenario_3_longer_context_more_sessions_gpu` |
+| **4** — Longer context + more sessions on one node | Does the same idea improve serving at node level? | Node-level aggregate | `scenario_4_longer_context_more_sessions_node` |
+
+**Repo focus:** Scenario 3 is the primary single-GPU target. Scenario 4 is the node-level follow-up. Scenarios 1 and 2 are explanatory baselines.
+
+**Success = serving-facing KPI, not compression ratio.** At least one of: >=20% lower peak HBM, materially better TTFT on reused prefixes, >=25% more concurrent sessions at fixed p95, or materially longer effective context.
+
 ## Execution Ladder
 
 Run this ladder in order. Do not skip steps.
 
-1. **Support gate** — run `scripts/env_probe.sh`, determine FP8/NVFP4 KV support
-2. vLLM BF16 baseline
-3. vLLM FP8 KV baseline
-4. vLLM + LMCache cold-tier reuse
-5. One promotion / reuse-policy ablation
-6. One-node run only after single-GPU success
+1. **Environment probe** — run `scripts/env_probe.sh`, write `results/env_probe.json`
+2. **Support gate** — determine FP8/NVFP4 KV support from probe results
+3. **Stable JSON baseline harness** — verify `run_baseline.py` emits correct schema
+4. **Aligned single-GPU baselines** — BF16, FP8 at 8k and 32k (Scenarios 1 & 2)
+5. **First vLLM + LMCache result** — tiered experiment + serving sweep (Scenario 3)
+6. **One policy ablation** — demand vs eager promotion
+7. **One-node run** — only after single-GPU success (Scenario 4)
+8. **Decision memo** — comparison table + bottleneck summary + recommendation
 
 Each step answers a concrete question about serving capacity, not about compression.
 Do not block on undocumented NVFP4 hot-KV assumptions in vLLM.
@@ -119,7 +136,7 @@ Codex role files live in `.codex/agents/`. Claude subagents live in `.claude/age
 - `eval-guard`: keep latency and quality evaluation honest
 - `kvtc-codec-engineer`: implement KVTC calibration, compression, decompression, and LMCache serde integration
 - `modelopt-quantizer`: run ModelOpt NVFP4-KV quantization and export checkpoints for TensorRT-LLM
-- `promotion-policy-designer`: design and ablate tier promotion policies for NVFP4 plus KVTC
+- `promotion-policy-designer`: design and ablate tier promotion policies for vLLM + LMCache tiered KV runtime
 - `b200-hardware-advisor`: ground KV cache decisions in B200 architecture first principles and ISA details
 
 ## Routing Guidance
