@@ -141,6 +141,140 @@ NVIDIA GenAI-Perf explicitly presents TTFT, request latency, inter-token latency
 
 That is useful for our benchmark because our primary KPI is not just raw throughput; it is **capacity under latency guardrails** [R4][L1].
 
+### 5. vLLM automatic prefix caching examples
+
+vLLM's Automatic Prefix Caching documentation is directly relevant because it explicitly identifies two example workload families where prefix reuse matters most:
+
+- repeated queries over the same long document
+- multi-round conversation over a shared chat history [R8]
+
+That is nearly identical to the reuse-heavy operating regime we care about for KV reuse, restore, and offload benchmarking [R8].
+
+### 6. RULER and LongBench as long-context quality backstops
+
+RULER provides synthetic long-context tasks with configurable sequence length and task complexity, and it is designed to test long-context capability beyond simple needle-in-a-haystack retrieval [R9].
+
+LongBench v2 provides realistic long-context tasks spanning single-document QA, multi-document QA, long dialogue history understanding, code repo understanding, and long structured data understanding, with contexts ranging from 8k to 2M words [R10].
+
+These are not serving benchmarks, but they are strong candidates for **quality-retention backstops** so that a tiered-KV benchmark does not optimize latency while ignoring long-context task utility [R9][R10].
+
+### 7. longctx_bench as a compression / eviction tradeoff backstop
+
+`longctx_bench` is directly relevant because it is a benchmark focused on long-context capable approaches including token eviction, KV cache quantization, and prompt compression, with explicit emphasis on tradeoffs rather than only speed [R11].
+
+It is not a serving-capacity benchmark by itself, but it is useful as a **secondary validation layer** when we eventually compare offload, eviction, or codec-style approaches [R11].
+
+## Benchmark aggregation stack
+
+We should aggregate these benchmarks into a single stack rather than choosing only one.
+
+### Layer 1: serving KPI and SLO layer
+
+Use:
+
+- **repo online harness** via `Blackwell/scripts/serve_and_bench.py` [L1]
+- **GenAI-Perf metric framing** for TTFT, inter-token latency, request latency, throughput, and goodput under constraints [R4][R7]
+
+Role:
+
+- defines the main serving KPI
+- keeps the benchmark focused on user-visible latency and goodput instead of raw tokens/sec only
+- gives us the right language for p95/p99 guardrails [R4][R7]
+
+### Layer 2: synthetic traffic and request-length layer
+
+Use:
+
+- **BurstGPT** for arrival patterns, session structure, and request / response token distributions [R3]
+- **TensorRT-LLM `prepare_dataset.py` / `trtllm-bench`** for controlled synthetic calibration workloads [R1]
+
+Role:
+
+- BurstGPT supplies trace-aligned traffic structure and session metadata [R3]
+- TensorRT-LLM synthetic datasets supply controlled calibration sweeps that are easy to reproduce [R1]
+
+This means the actual benchmark should use:
+
+- **trace-aligned scheduling from BurstGPT-style distributions**
+- **controlled token buckets from TensorRT-LLM-style synthetic datasets**
+
+### Layer 3: reuse and offload stress layer
+
+Use:
+
+- **repo repeated-prefix workloads** in `serve_and_bench.py` and `run_baseline.py` [L1][L2]
+- **vLLM benchmark CLI prefix-repetition and prefix-caching patterns** [R2]
+- **vLLM APC workload guidance** for long-document query reuse and multi-round conversation reuse [R8]
+
+Role:
+
+- directly stresses the KV reuse path
+- gives us reusable prefixes with configurable repeat structure
+- makes the benchmark relevant for restore-vs-recompute and host-offload behavior [R2][R8]
+
+This is the most important layer for the Blackwell KV offload hypothesis.
+
+### Layer 4: long-context quality-retention layer
+
+Use:
+
+- **LongBench / LongBench v2** [R10]
+- **RULER** [R9]
+- optionally **longctx_bench** when evaluating compression / eviction tradeoffs [R11]
+
+Role:
+
+- verifies that long-context ability is not collapsing while we optimize serving capacity
+- provides task-facing sanity checks beyond latency-only measurements [R9][R10][R11]
+
+These should be treated as **backstop evaluations**, not the main serving benchmark.
+
+## What we should actually compose for the Blackwell KV offload benchmark
+
+The practical answer is:
+
+### Benchmark core
+
+Use this as the benchmark core:
+
+- **online concurrency sweep** from the repo harness [L1]
+- **goodput / latency guardrails** from GenAI-Perf framing [R4]
+- **repeated-prefix and synthetic multi-turn active-set workloads** from this repo and vLLM prefix-caching patterns [L1][L2][R2][R8]
+- **restore-aware metrics** from the TensorRT-LLM disaggregated serving and KV connector model [R5][R6]
+
+### Synthetic data source mix
+
+Use this as the data source mix:
+
+- **BurstGPT-derived scheduling distributions** for sessions, request timing, and request-length realism [R3]
+- **ShareGPT / custom JSONL prompt pools** for chat-style prompts, as already supported by vLLM benchmarking [R2]
+- **prefix-repetition synthetic data** for controlled reuse clusters [R2]
+- **long-document QA prompts** for document-reuse slices [R2][R8]
+
+### Backstop evaluation set
+
+Use this as the secondary evaluation set:
+
+- **RULER** for synthetic long-context stress [R9]
+- **LongBench** for realistic long-context task quality [R10]
+- **longctx_bench** for compression / eviction tradeoff checks when needed [R11]
+
+## Recommended decision
+
+For the current Blackwell track, the best benchmark aggregation is:
+
+- **BurstGPT + repo repeated-prefix harness + vLLM prefix-repetition / APC patterns + GenAI-Perf metric framing** as the main benchmark stack [R2][R3][R4][R8][L1][L2]
+- **LongBench / RULER** as quality-retention backstops [R9][R10]
+- **longctx_bench** as a secondary comparison source when the work shifts from pure offload to broader compression / eviction tradeoff evaluation [R11]
+
+That gives us:
+
+- realistic or trace-aligned request timing [R3]
+- controllable reuse structure [R2][R8]
+- serving-facing latency and goodput KPIs [R4][R7]
+- long-context quality guardrails [R9][R10]
+- an optional compression-tradeoff benchmark when needed [R11]
+
 ## What is out of scope for this file
 
 The following are explicitly **not required** for the benchmark v1 defined here:
@@ -418,6 +552,18 @@ Extend the result schema and per-request tracing so restored bytes, visible rest
   - Retrieved: 2026-03-15
 - **[R7] NVIDIA GenAI Performance Analyzer**
   - URL: https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/perf_benchmark/genai_perf.html
+  - Retrieved: 2026-03-15
+- **[R8] vLLM Automatic Prefix Caching**
+  - URL: https://docs.vllm.ai/en/latest/features/automatic_prefix_caching/
+  - Retrieved: 2026-03-15
+- **[R9] NVIDIA RULER**
+  - URL: https://github.com/NVIDIA/RULER
+  - Retrieved: 2026-03-15
+- **[R10] LongBench / LongBench v2**
+  - URL: https://github.com/THUDM/LongBench
+  - Retrieved: 2026-03-15
+- **[R11] longctx_bench / KV Cache Compression, But What Must We Give in Return?**
+  - URL: https://github.com/henryzhongsc/longctx_bench
   - Retrieved: 2026-03-15
 
 ### Repo-local sources
