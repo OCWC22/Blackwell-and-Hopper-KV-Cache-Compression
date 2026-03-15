@@ -9,7 +9,11 @@ Use this skill when: making hardware-aware decisions about KV cache layout, memo
 - **Transistors:** 208 billion (across two dies)
 - **Compute capability:** 10.0 (sm_100)
 - **Each die:** 80 physical SMs, 74 enabled → **148 SMs total**
+- **CUDA cores:** 18,944 (148 SMs × 128 cores/SM)
+- **Tensor cores:** 592 (148 SMs × 4 per SM), 5th generation
 - **Architecture:** Blackwell (5th gen Tensor Cores)
+- **Boost clock:** up to 1,837 MHz
+- **Die-to-die interconnect:** 10 TB/s chip-to-chip
 
 ### Compute Throughput (per GPU)
 | Precision | Peak Performance |
@@ -82,6 +86,16 @@ Key ratio: **FP4 is 2× FP8 throughput** at the tensor core level.
 | MXFP8 | 32 values | E8M0 | block |
 
 NVFP4 accuracy advantage: dual-scale (FP8 per 16 + FP32 per tensor) yields ~5% better accuracy than MXFP4 single-scale for KV cache on Llama 3.3 70B.
+
+### PTX Block-Scaling Qualifiers
+- **`mxf4nvf4`**: E2M1 input with E4M3 scale factor (NVIDIA NVFP4), `.scale_vectorsize .block16` (16 elements per block)
+- **`mxf4`**: E2M1 input with E8M0 scale factor (OCP MX standard), `.scale_vectorsize .block32` (32 elements per block)
+- **`mxf8f6f4`**: Unified qualifier covering MXFP8/MXFP6/MXFP4 with E8M0 scales
+
+### Structured Sparsity (Blackwell-new)
+- **4:8 pairwise** structured sparsity for NVFP4: every 8 elements grouped into 4 pairs, 2 pairs pruned to zero
+- Enables 2× throughput (20 PFLOPS sparse vs 10 PFLOPS dense for FP4)
+- Sparsity metadata stored alongside NVFP4 values
 
 ---
 
