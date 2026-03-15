@@ -146,6 +146,97 @@ The hackathon output should contain:
 3. one profile or bottleneck explanation that points to the next iteration
 4. one defendable sentence: "On the same B200 hardware, our Blackwell-first vLLM + LMCache tiered KV setup served more reuse-heavy long-context traffic by reducing repeated prefill work and/or lowering peak KV memory pressure, while keeping latency and quality within acceptable bounds."
 
+## Concrete vLLM + LMCache Integration
+
+### How the KV connector works
+
+vLLM and LMCache both hash token blocks (256 tokens per block by default). vLLM passes block hashes to LMCache via the KV connector interface. LMCache returns a bitmask of available blocks. No coordination or block map persistence needed — even across multiple vLLM instances.
+
+Hierarchical lookup order: GPU memory → CPU memory (LMCache) → remote storage. Cache miss at each level cascades down.
+
+### Server launch — single-GPU with LMCache
+
+```bash
+LMCACHE_CONFIG_FILE=configs/lmcache_config.yaml \
+vllm serve Qwen/Qwen3-30B-A3B \
+  --kv-cache-dtype fp8 \
+  --enable-prefix-caching \
+  --tensor-parallel-size 1 \
+  --kv-transfer-config '{"kv_connector":"LMCacheConnectorV1","kv_role":"kv_both"}'
+```
+
+### Server launch — full 8xB200 node with LMCache
+
+```bash
+LMCACHE_CONFIG_FILE=configs/lmcache_config.yaml \
+vllm serve Qwen/Qwen3-30B-A3B \
+  --kv-cache-dtype fp8 \
+  --enable-prefix-caching \
+  --tensor-parallel-size 8 \
+  --kv-transfer-config '{"kv_connector":"LMCacheConnectorV1","kv_role":"kv_both"}'
+```
+
+### Server launch — NVFP4 hot tier (support-gated)
+
+```bash
+LMCACHE_CONFIG_FILE=configs/lmcache_config.yaml \
+vllm serve Qwen/Qwen3-30B-A3B \
+  --kv-cache-dtype nvfp4 \
+  --enable-prefix-caching \
+  --tensor-parallel-size 1 \
+  --kv-transfer-config '{"kv_connector":"LMCacheConnectorV1","kv_role":"kv_both"}'
+```
+
+If `--kv-cache-dtype nvfp4` is rejected, fall back to `fp8`.
+
+### LMCache environment variables
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `LMCACHE_CONFIG_FILE` | — | Path to YAML config |
+| `LMCACHE_LOCAL_CPU` | `True` | Enable CPU memory backend |
+| `LMCACHE_MAX_LOCAL_CPU_SIZE` | `20.0` | CPU offloading buffer in GB |
+| `LMCACHE_CHUNK_SIZE` | `256` | Token chunk size per block |
+
+### Concurrent user benchmarking
+
+Use `scripts/serve_and_bench.py` to answer "can we serve more users?"
+
+```bash
+# FP8 baseline (no LMCache)
+python scripts/serve_and_bench.py --kv-mode fp8 --tp 1
+
+# FP8 + LMCache cold tier
+python scripts/serve_and_bench.py --kv-mode fp8 --use-lmcache --tp 1
+
+# NVFP4 + LMCache (support-gated)
+python scripts/serve_and_bench.py --kv-mode nvfp4 --use-lmcache --tp 1
+
+# Full 8xB200 node
+python scripts/serve_and_bench.py --kv-mode fp8 --use-lmcache --tp 8
+
+# Concurrency sweep (stop at p95 TPOT limit)
+python scripts/serve_and_bench.py --kv-mode fp8 --use-lmcache \
+    --sweep-concurrency 1,2,4,8,16,32 --p95-tpot-limit-ms 100
+```
+
+### Tiered experiment with real LMCache offloading
+
+```bash
+python scripts/run_tiered_experiment.py --use-lmcache --kv-mode fp8 --requests 10
+python scripts/run_tiered_experiment.py --use-lmcache --kv-mode nvfp4 --requests 10
+```
+
+### SLA/SLO targets
+
+| Target | Metric |
+|--------|--------|
+| More concurrent users | Max sessions at fixed p95 TPOT |
+| Longer context | Max context length at same HBM budget |
+| Energy efficiency | Tokens per joule (tok/J) |
+| TTFT improvement | Warm vs cold TTFT on repeated prefix |
+| HBM reduction | Peak HBM with tiering vs without |
+
 ## Source Notes
 
 Use these as the primary references for this track.

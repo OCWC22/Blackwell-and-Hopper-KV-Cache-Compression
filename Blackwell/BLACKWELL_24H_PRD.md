@@ -101,13 +101,25 @@ Output: `results/baseline_{variant}_{context}.json`
 
 ### WS3: First Tiered Experiment — vLLM + LMCache (75 min)
 
-Run vLLM with LMCache cold-tier reuse enabled:
-- Hot tier: vLLM FP8 KV cache on GPU
-- Cold tier: LMCache-managed host RAM
+Run vLLM with real LMCache cold-tier reuse via `LMCacheConnectorV1`:
+- Hot tier: vLLM FP8 KV cache on GPU (or NVFP4 if support-gated)
+- Cold tier: LMCache-managed host RAM via CPU offloading
+- Connector: `--kv-transfer-config '{"kv_connector":"LMCacheConnectorV1","kv_role":"kv_both"}'`
+- Config: `LMCACHE_CONFIG_FILE=configs/lmcache_config.yaml`
 - Promotion policy: demand (default)
 - Protection: 4 sink tokens, 128 recent tokens
 
-Must record: offload latency, restore/promotion latency, cold store size, cache hit rate, TTFT cold vs warm.
+Commands:
+```bash
+# Tiered experiment with LMCache offloading
+python scripts/run_tiered_experiment.py --use-lmcache --kv-mode fp8 --requests 10
+
+# Concurrent user sweep (primary KPI)
+python scripts/serve_and_bench.py --kv-mode fp8 --use-lmcache \
+    --sweep-concurrency 1,2,4,8,16,32 --p95-tpot-limit-ms 100
+```
+
+Must record: offload latency, restore/promotion latency, cold store size, cache hit rate, TTFT cold vs warm, max concurrent sessions at p95 target, tokens/joule.
 
 This step validates the serving economics hypothesis. The question is whether KV reuse via LMCache improves TTFT and concurrency, not whether offloading exists.
 

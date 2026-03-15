@@ -69,6 +69,52 @@ These are verified in public documentation. Each has a source citation.
 
 These are things this repo proposes but has **not yet measured**. They are testable claims, not established facts.
 
+**Core claim: We are validating serving economics, not compression ratio alone.**
+
+### Visual architecture
+
+```
+                ┌──────────────────────────────┐
+                │           Request            │
+                └──────────────┬───────────────┘
+                               │
+                               ▼
+                ┌──────────────────────────────┐
+                │            vLLM              │
+                │   main serving / decode path │
+                └──────────────┬───────────────┘
+                               │
+                               ▼
+                ┌──────────────────────────────┐
+                │       Hot KV tier (GPU)      │
+                │  stable path: FP8 KV cache   │
+                │ optional future: NVFP4 path  │
+                └──────────────┬───────────────┘
+                               │
+                      reuse miss│reuse hit
+                               │
+                               ▼
+                ┌──────────────────────────────┐
+                │           LMCache            │
+                │ KV lookup / inject / store   │
+                │ cold/warm reusable KV layer  │
+                └──────────────┬───────────────┘
+                               │
+                               ▼
+                ┌──────────────────────────────┐
+                │      Cold / warm storage     │
+                │ host RAM first               │
+                │ KVTC as codec candidate      │
+                │ via LMCache compression slot │
+                └──────────────┬───────────────┘
+                               │
+                               ▼
+                ┌──────────────────────────────┐
+                │  restore / promotion on hit  │
+                │ back into active hot tier    │
+                └──────────────────────────────┘
+```
+
 ### Primary hypothesis
 
 On Blackwell/B200, a hot/cold KV lifecycle can improve serving economics for reuse-heavy long-context inference. The hot decode path uses the fastest practical supported KV representation in the serving runtime (vLLM FP8 KV cache as stable path), and the cold reusable tier (LMCache) stores stale prefixes for later restore.

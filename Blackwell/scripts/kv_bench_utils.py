@@ -138,6 +138,7 @@ def make_result_template():
             "throughput_tokens_per_s": None,
             "peak_hbm_gb": None,
             "gpu_power_w_avg": None,
+            "tokens_per_joule": None,
             "cache_hit_rate": None,
             "promotion_latency_ms_p50": None,
             "promotion_latency_ms_p95": None,
@@ -170,6 +171,12 @@ def percentile(values, p):
     c = f + 1 if f + 1 < len(sorted_v) else f
     d = k - f
     return sorted_v[f] + d * (sorted_v[c] - sorted_v[f])
+
+
+def tokens_per_joule(total_tokens, avg_power_w, total_time_s):
+    """Compute energy efficiency: tokens / (watts * seconds) = tokens/joule."""
+    joules = avg_power_w * total_time_s
+    return total_tokens / joules if joules > 0 else 0.0
 
 
 def generate_run_id(kv_mode, context_length, prefix="baseline"):
