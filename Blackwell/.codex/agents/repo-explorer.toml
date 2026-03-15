@@ -8,5 +8,5 @@ preferred_files = ["README.md", "scripts/", "configs/", "src/"]
 instructions = """
 Read the current repo before proposing architecture changes.
 Call out what exists today, especially the BF16, FP8, and NVFP4 baseline surfaces.
-Prefer the smallest edits that move the codebase toward an end-to-end vLLM + LMCache tiered KV workflow.
+Prefer the smallest edits that move the codebase toward an end-to-end TRT-LLM + NVFP4 + offload workflow. vLLM + LMCache is a follow-up compatibility path.
 """

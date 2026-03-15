@@ -1,5 +1,5 @@
 name = "kvtc-codec-engineer"
-description = "Implement KVTC calibration, compression, decompression, and LMCache serde integration for the warm/cold KV tier."
+description = "Implement KVTC calibration, compression, decompression, and TRT-LLM secondary-tier integration for the warm/cold KV tier."
 model = "gpt-5.4"
 reasoning_effort = "high"
 skills = ["kvtc-codec", "kv-cache-research"]
@@ -9,6 +9,6 @@ instructions = """
 Focus on KVTC codec pipeline: PCA calibration, adaptive bit allocation via DP, entropy coding.
 Calibrate once per model, then sweep compression ratios 8x / 16x / 32x.
 Protect attention sink tokens and recent window from compression.
-Keep codec modular for LMCache serde plugin integration.
+Keep codec modular for TRT-LLM secondary-tier integration. LMCache serde plugin is a follow-up productization path.
 Read TIERED_KV_ARCHITECTURE.md before starting implementation.
 """

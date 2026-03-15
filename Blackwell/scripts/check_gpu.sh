@@ -1,5 +1,6 @@
 #!/bin/bash
 # Run this ON a compute node (via srun --gpus=1 --pty bash)
+# Primary runtime: TensorRT-LLM
 set -e
 
 echo "=== GPU Environment Check ==="
@@ -27,7 +28,15 @@ for i in range(torch.cuda.device_count()):
 " 2>/dev/null || echo "PyTorch not available"
 echo ""
 
-echo "--- vLLM ---"
+echo "--- TensorRT-LLM (primary runtime) ---"
+python3 -c "import tensorrt_llm; print(f'TensorRT-LLM: {tensorrt_llm.__version__}')" 2>/dev/null || echo "TensorRT-LLM not installed"
+echo ""
+
+echo "--- ModelOpt ---"
+python3 -c "import modelopt; print(f'ModelOpt: {modelopt.__version__}')" 2>/dev/null || echo "ModelOpt not installed"
+echo ""
+
+echo "--- vLLM (secondary runtime) ---"
 python3 -c "import vllm; print(f'vLLM: {vllm.__version__}')" 2>/dev/null || echo "vLLM not installed"
 echo ""
 

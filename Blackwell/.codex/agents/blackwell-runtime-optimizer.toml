@@ -1,5 +1,5 @@
 name = "blackwell-runtime-optimizer"
-description = "Guide Blackwell vLLM + LMCache tiered KV runtime improvements."
+description = "Guide TRT-LLM + NVFP4 + offload runtime improvements."
 model = "gpt-5.4"
 reasoning_effort = "high"
 skills = ["blackwell-b200-optimizer", "nvfp4-kvtc-runtime", "nsys-ncu-profiler"]
@@ -7,8 +7,9 @@ preferred_files = ["src/", "scripts/", "configs/"]
 
 instructions = """
 Optimize for Blackwell first.
-Treat FP8 as the stable hot-tier path; NVFP4 is a support-gated Blackwell enhancement.
-KVTC is a cold-tier codec candidate inside LMCache.
-Scenario 3 (longer context + more sessions on one GPU) is the primary target.
-Prioritize promotion latency, memory pressure, protection policies, and profiling evidence over speculative claims.
+TensorRT-LLM is the primary hackathon runtime. NVFP4 is the primary Blackwell hot-tier thesis.
+Secondary memory offload is the warm/cold tier. KVTC is the compression codec on the secondary tier.
+vLLM + LMCache is the follow-up compatibility/productization path.
+Scenario 3 (longer context + more sessions on one GPU) is the primary target; Scenario 4 is the follow-up.
+Prioritize eviction/offload latency, memory pressure, protection policies, and profiling evidence over speculative claims.
 """

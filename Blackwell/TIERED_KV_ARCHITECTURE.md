@@ -19,19 +19,20 @@ These are verified in public documentation. Each has a source citation.
 - **Source:** `[R1]` NVIDIA, "Introducing NVFP4" — <https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/>
 - **Source:** `[R7]` NVIDIA, "NVFP4 KV Cache" — <https://developer.nvidia.com/blog/optimizing-inference-for-long-context-and-large-batch-sizes-with-nvfp4-kv-cache>
 
-**Important caveat:** NVIDIA documents NVFP4 as a model/inference quantization format broadly. The KV-cache support story is stack-dependent. NVFP4 hot-KV is not a universally documented "drop-in" path across all runtimes. Treat as a support gate, not an assumed fact.
-
 ### TensorRT-LLM has KV reuse, offloading, and connectors
 
 - KV Cache Early Reuse: enables prefix sharing and cache reuse across requests
 - KV Cache Connector: persistence/reuse interface for KV blocks
 - Prioritized eviction: configurable KV eviction policies
-- Offloading: supports KV movement between GPU and host
+- Offloading: supports KV movement between GPU and host memory
+- NVFP4 KV cache: TRT-LLM release notes validate Qwen3-32B and Qwen3-30B-A3B with NVFP4
+- Host cache: `KvCacheConfig.host_cache_size` enables host memory as secondary KV storage
+- Block reuse: `KvCacheConfig.enable_block_reuse` enables KV block sharing across requests
 - **Source:** `[R2]` NVIDIA, "5x Faster TTFT" — <https://developer.nvidia.com/blog/5x-faster-time-to-first-token-with-nvidia-tensorrt-llm-kv-cache-early-reuse/>
 - **Source:** `[R8]` TRT-LLM KV Cache Reuse — <https://nvidia.github.io/TensorRT-LLM/advanced/kv-cache-reuse.html>
 - **Source:** `[R8]` TRT-LLM KV Cache System — <https://nvidia.github.io/TensorRT-LLM/latest/features/kvcache.html>
 
-### vLLM supports FP8 KV cache
+### vLLM supports FP8 KV cache (follow-up path)
 
 - vLLM documents FP8 KV cache quantization as a first-class path
 - vLLM supports ModelOpt NVFP4 checkpoints for model weights, but public KV docs are FP8-centered
@@ -39,7 +40,7 @@ These are verified in public documentation. Each has a source citation.
 - **Source:** `[R3]` vLLM quantized KV cache — <https://docs.vllm.ai/usage/quantization/quantized_kvcache/>
 - **Source:** `[R4]` vLLM production-stack KV cache — <https://docs.vllm.ai/projects/production-stack/en/latest/user_manual/kv_cache/index.html>
 
-### LMCache supports KV offloading, compression, and sharing
+### LMCache supports KV offloading, compression, and sharing (follow-up path)
 
 - Pinned CPU RAM as hot host cache
 - Async loading for I/O overlap
@@ -61,7 +62,7 @@ These are verified in public documentation. Each has a source citation.
 
 - Combined FP8 + NVFP4-KV quantization recipe via `mtq.NVFP4_KV_CFG`
 - Deployment via TensorRT-LLM (primary) or vLLM (secondary)
-- **Source:** `[R7]` ModelOpt PTQ examples — <https://github.com/NVIDIA/TensorRT-Model-Optimizer/blob/main/examples/llm_ptq/README.md>
+- **Source:** `[R9]` ModelOpt PTQ examples — <https://github.com/NVIDIA/TensorRT-Model-Optimizer/blob/main/examples/llm_ptq/README.md>
 
 ---
 
@@ -71,7 +72,49 @@ These are things this repo proposes but has **not yet measured**. They are testa
 
 **Core claim: We are validating serving economics, not compression ratio alone.**
 
-### Visual architecture
+### Primary architecture (hackathon path)
+
+```
+                ┌──────────────────────────────┐
+                │           Request            │
+                └──────────────┬───────────────┘
+                               │
+                               ▼
+                ┌──────────────────────────────┐
+                │       TensorRT-LLM           │
+                │   primary hackathon runtime  │
+                └──────────────┬───────────────┘
+                               │
+                               ▼
+                ┌──────────────────────────────┐
+                │   Hot KV tier (GPU memory)   │
+                │  primary: NVFP4 KV cache     │
+                │  fallback: FP8 KV cache      │
+                └──────────────┬───────────────┘
+                               │
+                      eviction │ reuse/restore
+                               │
+                               ▼
+                ┌──────────────────────────────┐
+                │  TRT-LLM KV reuse / offload  │
+                │  eviction + host cache mgmt  │
+                └──────────────┬───────────────┘
+                               │
+                               ▼
+                ┌──────────────────────────────┐
+                │  Secondary memory (host RAM)  │
+                │  KVTC compression candidate  │
+                │  on the offloaded tier       │
+                └──────────────┬───────────────┘
+                               │
+                               ▼
+                ┌──────────────────────────────┐
+                │  restore / promotion on hit  │
+                │ back into active NVFP4 tier  │
+                └──────────────────────────────┘
+```
+
+### Follow-up compatibility architecture (productization path)
 
 ```
                 ┌──────────────────────────────┐
@@ -81,14 +124,13 @@ These are things this repo proposes but has **not yet measured**. They are testa
                                ▼
                 ┌──────────────────────────────┐
                 │            vLLM              │
-                │   main serving / decode path │
+                │   follow-up serving engine   │
                 └──────────────┬───────────────┘
                                │
                                ▼
                 ┌──────────────────────────────┐
                 │       Hot KV tier (GPU)      │
                 │  stable path: FP8 KV cache   │
-                │ optional future: NVFP4 path  │
                 └──────────────┬───────────────┘
                                │
                       reuse miss│reuse hit
@@ -105,7 +147,6 @@ These are things this repo proposes but has **not yet measured**. They are testa
                 │      Cold / warm storage     │
                 │ host RAM first               │
                 │ KVTC as codec candidate      │
-                │ via LMCache compression slot │
                 └──────────────┬───────────────┘
                                │
                                ▼
@@ -115,39 +156,43 @@ These are things this repo proposes but has **not yet measured**. They are testa
                 └──────────────────────────────┘
 ```
 
+### Why longer context and more sessions are different KV-pressure modes
+
+**Longer context** (Scenario 1) puts pressure on **KV bytes per session**. A single session with 64K context on a 32B model may consume 8-16 GB of KV alone in FP16, leaving little room for model weights or other sessions. NVFP4 directly reduces this per-session footprint by ~50% vs FP8.
+
+**More sessions** (Scenario 2) puts pressure on **total live KV replicas**. Even at short context, 32 concurrent sessions each with their own KV blocks can exhaust HBM. Offloading stale KV to host memory and restoring on reuse keeps more sessions alive without OOM.
+
+**Both** (Scenario 3, PRIMARY) is the hardest: context_length × active_sessions. This is where NVFP4 hot-tier + host offload is most valuable — NVFP4 compresses per-session KV, and offload manages the total active set.
+
 ### Primary hypothesis
 
-On Blackwell/B200, a hot/cold KV lifecycle can improve serving economics for reuse-heavy long-context inference. The hot decode path uses the fastest practical supported KV representation in the serving runtime (vLLM FP8 KV cache as stable path), and the cold reusable tier (LMCache) stores stale prefixes for later restore.
+On Blackwell/B200, an NVFP4 hot KV tier plus host-offloaded secondary tier can improve serving economics for reuse-heavy long-context inference. The hot decode path uses NVFP4 KV in TensorRT-LLM, and stale/evicted KV moves to host memory for later restore.
 
 ### Specific claims to test
 
-1. **Hot/cold lifecycle improves serving economics** — the same GPU can serve more concurrent sessions, longer context, or better TTFT by tiering KV via vLLM + LMCache rather than keeping everything in HBM
-2. **LMCache reuse path is viable** — restoring cold KV from LMCache to vLLM's hot tier is fast enough that promotion latency is amortized by reuse
+1. **NVFP4 hot KV reduces HBM pressure** — NVFP4 KV cache gives meaningful HBM reduction vs FP8 with acceptable quality loss on Blackwell
+2. **Host offload extends serving capacity** — offloading evicted KV to host memory and restoring on reuse lets the GPU serve more sessions or longer context
 3. **Protection policies preserve quality** — protecting first 4 sink tokens and last 128 recent tokens maintains quality within 1% of baseline
 4. **Demand promotion beats eager promotion** — restoring KV only on cache hit is more efficient than pre-loading all cold KV
-5. **Compressed cold tier beats raw cold tier** — KVTC compression in the cold tier saves enough host memory or bandwidth to be worth the codec overhead
+5. **Compressed cold tier beats raw cold tier** — KVTC compression in the secondary tier saves enough host memory or bandwidth to be worth the codec overhead
 
 ### Architecture hypothesis
 
 ```
-Tier 0 — Hot KV
-  Stable public runtime path:
-  - vLLM FP8 KV cache
+Tier 0 — Hot KV (GPU memory)
+  Primary: TRT-LLM NVFP4 KV cache
+  Fallback: TRT-LLM FP8 KV cache
 
-Tier 0b — Experimental Blackwell enhancement
-  - NVFP4-aware hot path only if runtime support is explicitly verified
-
-Tier 1 — Cold / reusable KV
-  - LMCache-managed storage
-  - host RAM first
-  - optional compression via KVTC candidate path
+Tier 1 — Secondary offload (host memory)
+  Managed by TRT-LLM KV offload / eviction / reuse
+  Optional compression via KVTC codec candidate
 
 Goal:
-  Improve serving economics via KV reuse and better lifecycle management,
-  not compression ratio alone.
+  Improve serving economics via NVFP4 hot-tier efficiency
+  and KV reuse/offload, not compression ratio alone.
 
 Promotion Path:
-  cold blob → decompress → repack to active format → restore to GPU → decode continues
+  host blob → decompress if KVTC → restore to GPU → decode continues
   Cost paid once on reuse, not every token
 ```
 
@@ -156,7 +201,7 @@ Promotion Path:
 - A new inference engine
 - A new distributed cache protocol
 - A general-purpose KV compression framework
-- A replacement for LMCache or vLLM or TRT-LLM
+- A replacement for TensorRT-LLM, vLLM, or LMCache
 
 ---
 
@@ -174,7 +219,7 @@ These metrics must be produced by this repo to validate or reject the hypothesis
 | Peak HBM | Maximum GPU memory allocated | GB |
 | GPU power | Average power draw during run | W |
 | Cache hit rate | Fraction of requests hitting prefix cache | 0.0-1.0 |
-| Promotion latency | Time to restore cold KV to hot tier | ms (p50, p95) |
+| Promotion latency | Time to restore offloaded KV to hot tier | ms (p50, p95) |
 | Quality delta | Accuracy difference vs bf16 baseline | % |
 
 ### Serving-outcome metrics (tiered runs)
@@ -185,8 +230,8 @@ These metrics must be produced by this repo to validate or reject the hypothesis
 | Effective context length | Longest context that fits within HBM budget |
 | TTFT improvement | On cache-hit vs cache-miss requests |
 | HBM reduction | Peak HBM with tiering vs without |
-| Cold-tier size | Bytes stored in host RAM / disk |
-| Offload latency | Time to move KV to cold tier |
+| Secondary tier size | Bytes stored in host RAM |
+| Offload latency | Time to move KV to secondary tier |
 
 ### Success thresholds (hackathon-grade)
 
@@ -205,7 +250,7 @@ These metrics must be produced by this repo to validate or reject the hypothesis
 | Promotion strategy | demand vs eager |
 | Sink tokens protected | 0, 4 |
 | Recent window size | 0, 64, 128, 256 |
-| Cold tier format | raw tensor vs KVTC (if codec ready) |
+| Secondary tier format | raw tensor vs KVTC (if codec ready) |
 
 ---
 
@@ -215,11 +260,13 @@ Always run in this order. Do not skip steps.
 
 | Step | Variant | Purpose | Gate |
 |------|---------|---------|------|
-| 1 | BF16 / default KV | Accuracy ceiling, latency/memory floor | Always run |
-| 2 | FP8 KV | Stable hot-tier baseline | Always run |
-| 3 | FP8 KV + LMCache | First cold-tier reuse result | After step 2 |
-| 4 | NVFP4 KV | Blackwell enhancement baseline | Only if support gate passes |
-| 5 | Tiered + KVTC cold | Compressed cold tier | Only if codec ready |
+| 1 | TRT-LLM BF16 / default KV | Accuracy ceiling, latency/memory floor | Always run |
+| 2 | TRT-LLM FP8 KV | Stable hot-tier baseline | Always run |
+| 3 | TRT-LLM NVFP4 KV | Primary Blackwell hot-tier thesis | Only if support gate passes |
+| 4 | TRT-LLM NVFP4 + host offload | Secondary tier validation | After step 3 |
+| 5 | TRT-LLM NVFP4 + offload + KVTC | Compressed secondary tier | Only if codec ready |
+| 6 | vLLM FP8 KV (follow-up) | Compatibility comparison | If time permits |
+| 7 | vLLM FP8 + LMCache (follow-up) | Productization comparison | If time permits |
 
 ### Accuracy benchmarks
 
@@ -249,15 +296,17 @@ For hackathon, use small subsets:
 
 ### Stack priority
 
-1. **First credible path:** Use whichever runtime (TRT-LLM or vLLM) produces a clean baseline first
-2. **Cold-tier first:** Prove tiering helps with raw host-RAM cold tier before adding KVTC codec
+1. **Primary hackathon path:** TensorRT-LLM with NVFP4 hot KV and host offload
+2. **Secondary tier first:** Prove offload helps with raw host-RAM before adding KVTC codec
 3. **Do not couple risks:** Tiering hypothesis and compression hypothesis are independent. Test tiering first.
+4. **Follow-up comparison:** vLLM + LMCache after primary TRT-LLM results are stable
 
 ---
 
 ## Rules
 
 - Do not replace the inference engine
+- Do not start with vLLM + LMCache as the primary hackathon path
 - Do not use KVTC as the always-hot representation first
 - Keep attention sink tokens protected
 - Keep a recent-token window protected
@@ -268,6 +317,8 @@ For hackathon, use small subsets:
 - Do not drop quality measurement because memory numbers look good
 - Do not claim NVFP4 hot-KV support unless verified on the chosen stack
 - Do not couple KVTC integration risk with tiering risk on day zero
+- Do not use KVTC paper as evidence for TRT-LLM behavior
+- Do not use NVIDIA NVFP4 docs as proof of vLLM hot-KV support
 
 ---
 

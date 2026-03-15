@@ -37,8 +37,8 @@ This is the NVIDIA-documented configuration pattern.
 
 ## Deployment Paths
 
-1. **TensorRT-LLM (primary)**: export quantized checkpoint, build TRT-LLM engine, NVFP4 KV is fully supported
-2. **vLLM (secondary)**: vLLM supports ModelOpt NVFP4 checkpoints but public KV docs are FP8-centered; treat as compatibility track
+1. **TensorRT-LLM (primary — hackathon runtime)**: export quantized checkpoint, build TRT-LLM engine, NVFP4 KV is fully supported. This is the primary deployment target.
+2. **vLLM (follow-up compatibility path)**: vLLM supports ModelOpt NVFP4 checkpoints but public KV docs are FP8-centered; treat as follow-up productization track, not the hackathon primary.
 
 ## Things To Avoid
 

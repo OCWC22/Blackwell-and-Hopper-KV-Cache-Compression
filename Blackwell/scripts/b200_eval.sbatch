@@ -9,4 +9,8 @@
 #SBATCH --output=logs/%x-%j.out
 #SBATCH --error=logs/%x-%j.err
 
+# B200 evaluation wrapper.
+# Primary runtime: TensorRT-LLM. The actual command is passed via EVAL_COMMAND
+# or dispatched by run_b200_eval.sh.
+
 exec "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/run_b200_eval.sh"

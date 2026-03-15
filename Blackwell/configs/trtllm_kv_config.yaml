@@ -1,0 +1,17 @@
+# TensorRT-LLM KV Cache Configuration for Blackwell Hackathon
+# Used with run_baseline.py --engine tensorrt_llm
+
+# KV cache type: auto, fp8, nvfp4
+kv_cache_type: nvfp4
+
+# Host cache size in GB (for secondary memory offload)
+host_cache_size: 20.0
+
+# Enable KV block reuse across requests
+enable_block_reuse: true
+
+# Max sequence length
+max_seq_len: 32768
+
+# GPU memory fraction for KV cache
+kv_cache_free_gpu_memory_fraction: 0.90

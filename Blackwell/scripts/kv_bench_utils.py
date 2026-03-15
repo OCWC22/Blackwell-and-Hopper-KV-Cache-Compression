@@ -50,10 +50,11 @@ def get_cuda_version():
 
 
 def get_runtime_versions():
-    """Get versions of vLLM, TRT-LLM, LMCache, torch."""
+    """Get versions of TRT-LLM, ModelOpt, vLLM, LMCache, torch."""
     versions = {}
-    for pkg, mod in [("torch", "torch"), ("vllm", "vllm"),
-                     ("tensorrt_llm", "tensorrt_llm"), ("lmcache", "lmcache")]:
+    for pkg, mod in [("torch", "torch"), ("tensorrt_llm", "tensorrt_llm"),
+                     ("modelopt", "modelopt"), ("vllm", "vllm"),
+                     ("lmcache", "lmcache")]:
         try:
             m = __import__(mod)
             versions[pkg] = getattr(m, "__version__", "installed")

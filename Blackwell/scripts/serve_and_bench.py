@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Online serving benchmark — concurrent user sweeps with vLLM + LMCache.
+"""Online serving benchmark — concurrent user sweeps.
+
+Primary path: TensorRT-LLM with NVFP4 KV cache (via trtllm-serve or Triton).
+Follow-up path: vLLM with FP8 KV cache + optional LMCache.
 
 Supports Scenario 2 (more sessions on one GPU), Scenario 3 (longer context +
 more sessions on one GPU), and Scenario 4 (one node) depending on configuration.
@@ -9,7 +12,7 @@ Answers the primary hackathon question:
   one B200 GPU (or one 8xB200 node) serve with tiered KV?
 
 Approach:
-  1. Launch vLLM server with configurable hot-tier dtype and optional LMCache
+  1. Launch serving engine (TRT-LLM or vLLM) with configurable KV dtype
   2. Wait for server health
   3. Drive concurrent requests (repeated-prefix workload)
   4. Sweep concurrency levels, stop when p95 TPOT exceeds threshold
@@ -17,20 +20,23 @@ Approach:
   6. Shut down server
 
 Usage:
-    # Single-GPU FP8 baseline (no LMCache)
-    python scripts/serve_and_bench.py --kv-mode fp8 --tp 1
+    # TRT-LLM primary path — NVFP4
+    python scripts/serve_and_bench.py --engine tensorrt_llm --kv-mode nvfp4 --tp 1
 
-    # Single-GPU FP8 + LMCache cold tier (Scenario 3)
-    python scripts/serve_and_bench.py --kv-mode fp8 --use-lmcache --tp 1
+    # TRT-LLM with host offload
+    python scripts/serve_and_bench.py --engine tensorrt_llm --kv-mode nvfp4 --offload --tp 1
 
-    # Single-GPU NVFP4 + LMCache (support-gated)
-    python scripts/serve_and_bench.py --kv-mode nvfp4 --use-lmcache --tp 1
+    # vLLM follow-up path
+    python scripts/serve_and_bench.py --engine vllm --kv-mode fp8 --tp 1
+
+    # vLLM + LMCache follow-up
+    python scripts/serve_and_bench.py --engine vllm --kv-mode fp8 --use-lmcache --tp 1
 
     # Full 8xB200 node (Scenario 4)
-    python scripts/serve_and_bench.py --kv-mode fp8 --use-lmcache --tp 8
+    python scripts/serve_and_bench.py --engine tensorrt_llm --kv-mode nvfp4 --tp 8
 
     # Concurrency sweep
-    python scripts/serve_and_bench.py --kv-mode fp8 --use-lmcache \\
+    python scripts/serve_and_bench.py --engine tensorrt_llm --kv-mode nvfp4 \\
         --sweep-concurrency 1,2,4,8,16,32 --p95-tpot-limit-ms 100
 """
 
@@ -56,10 +62,18 @@ def parse_args():
     p = argparse.ArgumentParser(description="Online serving benchmark with concurrent user sweeps")
     p.add_argument("--model", default="Qwen/Qwen3-30B-A3B",
                    help="Model name or path")
-    p.add_argument("--kv-mode", choices=["bf16", "fp8", "nvfp4"], default="fp8",
-                   help="KV cache dtype (nvfp4 is support-gated)")
+    p.add_argument("--engine", choices=["tensorrt_llm", "vllm"], default="tensorrt_llm",
+                   help="Serving engine (tensorrt_llm is primary)")
+    p.add_argument("--engine-dir", default=None,
+                   help="Pre-built TRT-LLM engine directory")
+    p.add_argument("--kv-mode", choices=["bf16", "fp8", "nvfp4"], default="nvfp4",
+                   help="KV cache dtype (nvfp4 is primary Blackwell thesis)")
+    p.add_argument("--offload", action="store_true",
+                   help="Enable host memory offload (TRT-LLM path)")
+    p.add_argument("--offload-size", type=float, default=20.0,
+                   help="Host cache size in GB for offload")
     p.add_argument("--use-lmcache", action="store_true",
-                   help="Enable LMCache CPU offloading via LMCacheConnectorV1")
+                   help="Enable LMCache CPU offloading (vLLM follow-up path)")
     p.add_argument("--lmcache-config", default="configs/lmcache_config.yaml",
                    help="Path to LMCache config YAML")
     p.add_argument("--lmcache-cpu-size", type=float, default=20.0,
@@ -89,7 +103,37 @@ def parse_args():
 
 
 def build_server_cmd(args):
-    """Build the vllm serve command."""
+    """Build the serve command for the selected engine."""
+    if args.engine == "tensorrt_llm":
+        return build_trtllm_server_cmd(args)
+    else:
+        return build_vllm_server_cmd(args)
+
+
+def build_trtllm_server_cmd(args):
+    """Build the TRT-LLM serve command (trtllm-serve or python -m tensorrt_llm.serve)."""
+    cmd = [
+        "trtllm-serve",
+        args.engine_dir or args.model,
+        "--host", args.host,
+        "--port", str(args.port),
+        "--tp_size", str(args.tp),
+        "--max_seq_len", str(args.context_length),
+    ]
+
+    if args.kv_mode == "fp8":
+        cmd.extend(["--kv_cache_type", "fp8"])
+    elif args.kv_mode == "nvfp4":
+        cmd.extend(["--kv_cache_type", "nvfp4"])
+
+    if args.offload:
+        cmd.extend(["--host_cache_size", str(int(args.offload_size * 1024 * 1024 * 1024))])
+
+    return cmd
+
+
+def build_vllm_server_cmd(args):
+    """Build the vLLM serve command."""
     kv_dtype_map = {"bf16": "auto", "fp8": "fp8", "nvfp4": "nvfp4"}
     kv_dtype = kv_dtype_map.get(args.kv_mode, "auto")
 
@@ -116,9 +160,9 @@ def build_server_cmd(args):
 
 
 def build_server_env(args):
-    """Build environment for the vLLM server process."""
+    """Build environment for the server process."""
     env = os.environ.copy()
-    if args.use_lmcache:
+    if args.engine == "vllm" and args.use_lmcache:
         abs_config = os.path.abspath(args.lmcache_config)
         if os.path.exists(abs_config):
             env["LMCACHE_CONFIG_FILE"] = abs_config
@@ -256,7 +300,7 @@ async def run_sweep(args):
     if args.scenario_id is None:
         if args.tp > 1:
             args.scenario_id = "scenario_4_longer_context_more_sessions_node"
-        elif args.use_lmcache:
+        elif args.offload or args.use_lmcache:
             args.scenario_id = "scenario_3_longer_context_more_sessions_gpu"
         else:
             args.scenario_id = "scenario_2_more_sessions_gpu"
@@ -388,7 +432,7 @@ async def run_sweep(args):
         result["serving_mode"] = "online"
 
         result["runtime"] = {
-            "engine": "vllm",
+            "engine": args.engine,
             "engine_version": "unknown",  # filled from server output if available
             "cuda_version": cuda_ver,
             "driver_version": gpu_info["driver_version"],
@@ -432,11 +476,15 @@ async def run_sweep(args):
             "quality_delta_vs_best_baseline": None,
         }
 
+        offload_enabled = args.offload if args.engine == "tensorrt_llm" else args.use_lmcache
         result["tiering"] = {
-            "enabled": args.use_lmcache,
+            "enabled": offload_enabled,
             "hot_tier_format": args.kv_mode,
-            "cold_tier_format": "lmcache_cpu" if args.use_lmcache else None,
-            "lmcache_enabled": args.use_lmcache,
+            "cold_tier_format": "trtllm_host_cache" if (args.engine == "tensorrt_llm" and args.offload) else (
+                "lmcache_cpu" if args.use_lmcache else None
+            ),
+            "offload_mechanism": args.engine,
+            "lmcache_enabled": args.use_lmcache if args.engine == "vllm" else False,
             "promotion_policy": "demand",
         }
 

@@ -4,7 +4,7 @@ Use this file as the track-level instruction source for Claude Code. Shared skil
 
 ## Primary Goal
 
-Treat this as the Blackwell hackathon execution repo.
+Treat this as the Blackwell hackathon execution repo. TensorRT-LLM is the primary runtime. NVFP4 hot KV is the primary Blackwell thesis. vLLM + LMCache is the follow-up compatibility / productization path.
 
 ## Four Benchmark Scenarios
 
@@ -15,16 +15,19 @@ Treat this as the Blackwell hackathon execution repo.
 | **3** — Both, one GPU **(PRIMARY)** | Can one GPU serve many users with long prompts? | max sessions at large context, peak HBM, p95/p99 TPOT, TTFT on reused prefixes, quality delta | `scenario_3_longer_context_more_sessions_gpu` |
 | **4** — Both, one node | Does the same idea improve serving at node level? | aggregate sessions/node, aggregate throughput, aggregate HBM | `scenario_4_longer_context_more_sessions_node` |
 
-## Execution Order (8 steps)
+## Execution Order (11 steps)
 
 1. **Environment probe** — `scripts/env_probe.sh` → `results/env_probe.json`
-2. **Support gate** — determine FP8/NVFP4 KV support from probe
-3. **Stable JSON baseline harness** — verify `run_baseline.py` schema
-4. **Aligned single-GPU baselines** — BF16, FP8 at 8k and 32k
-5. **First vLLM + LMCache result** — `run_tiered_experiment.py` + `serve_and_bench.py` (Scenario 3)
-6. **One policy ablation** — demand vs eager promotion
-7. **One-node run** — only after single-GPU success (Scenario 4)
-8. **Decision memo** — comparison table + bottleneck summary + recommendation
+2. **Support gate** — determine TRT-LLM NVFP4/FP8 KV support from probe
+3. **Stable JSON baseline harness** — verify `run_baseline.py` schema with `--engine tensorrt_llm`
+4. **TRT-LLM BF16 / default baseline** — BF16 at 8k and 32k
+5. **TRT-LLM FP8 baseline** — FP8 at 8k and 32k
+6. **TRT-LLM NVFP4 hot-KV baseline** — NVFP4 at 8k and 32k
+7. **TRT-LLM + secondary offload tier** — host memory offload with NVFP4 hot KV
+8. **TRT-LLM + secondary offload + KVTC candidate** — KVTC compression on offloaded tier
+9. **One promotion-policy ablation** — demand vs eager promotion
+10. **One-node run** — only after single-GPU success (Scenario 4)
+11. **Decision memo** — comparison table + bottleneck summary + recommendation
 
 ## Success Criteria (KPI-based)
 
@@ -42,12 +45,15 @@ While keeping:
 ## Core Constraints
 
 - Blackwell is the real target.
-- vLLM FP8 KV cache is the stable documented hot-tier path.
-- NVFP4 is a Blackwell-aware optional enhancement — only use if runtime support is explicitly verified.
-- `LMCache` is the cold/warm reusable KV layer. `KVTC` is a cold-tier codec candidate.
+- **TensorRT-LLM is the primary hackathon runtime.** Do not start with vLLM + LMCache as the primary path.
+- **NVFP4 is the primary Blackwell hot-tier thesis.** If NVFP4 is not supported in TRT-LLM, fall back to FP8.
+- **Secondary memory offload** (host RAM) is the warm/cold tier. KVTC is the cold-tier codec candidate.
+- **vLLM + LMCache** is the follow-up compatibility / productization path. Document it separately.
+- **Kimi K2.5** is a stretch / node-level target only. Do not block the single-GPU proof on it.
 - Keep long-running work Slurm-safe and reproducible.
 - Save benchmark artifacts in `results/` and batch logs in `logs/`.
 - Optimize for serving efficiency first (sessions, HBM, TTFT), then memory savings.
+- **Do not start multi-node before single-GPU and one-node success.**
 
 ## Support Gate (Run Before Building Thesis)
 
@@ -56,45 +62,47 @@ Before implementing the tiered runtime, run `scripts/env_probe.sh` and verify:
 1. **GPU model** — must contain B200 or B100 (reject if Hopper or older)
 2. **Driver version** — >= 570.x for Blackwell support
 3. **CUDA version** — >= 12.8
-4. **Runtime version** — vLLM and/or TensorRT-LLM version
-5. **Hot-tier KV support** — determine which path is available:
-   - **NVFP4 hot KV**: check if vLLM accepts `kv_cache_dtype="nvfp4"` or TRT-LLM loads NVFP4-KV checkpoint
-   - **FP8 hot KV**: check if vLLM accepts `kv_cache_dtype="fp8"` (baseline gate)
-   - **Unsupported / unclear**: neither path works cleanly
+4. **TensorRT-LLM version** — must be installed
+5. **ModelOpt version** — if used for quantization
+6. **Hot-tier KV support** — determine which path is available:
+   - **NVFP4 hot KV in TRT-LLM**: check if TRT-LLM supports `kv_cache_type` with NVFP4 or loads NVFP4-KV checkpoint
+   - **FP8 hot KV in TRT-LLM**: check if TRT-LLM supports FP8 KV cache
+   - **FP8 hot KV in vLLM**: fallback check for follow-up path
+7. **Offload support** — whether TRT-LLM KV host offload is available
 
 **Decision tree:**
 
 | Gate result | Action |
 |-------------|--------|
-| NVFP4 hot-KV supported | Run full ladder: BF16 → FP8 → NVFP4 → tiered |
-| FP8 hot-KV only | Run: BF16 → FP8 → tiered with FP8 hot tier |
-| Neither supported | Stop. Report env_probe.json. Do not proceed. |
+| TRT-LLM NVFP4 hot-KV supported | Run full ladder: BF16 → FP8 → NVFP4 → NVFP4+offload → +KVTC |
+| TRT-LLM FP8 only | Run: BF16 → FP8 → FP8+offload. Report inability to validate NVFP4 |
+| Neither supported in TRT-LLM | Try vLLM FP8 as fallback. Report env_probe.json |
+| Nothing works | Stop. Report env_probe.json. Do not proceed |
 
-If NVFP4 hot-KV is not clearly supported in the chosen stack, **do not block the hackathon**.
-Pivot to the nearest stable hot-tier baseline and preserve the serving-capacity experiment.
-
-NVIDIA clearly documents NVFP4 as a Blackwell-native format, but the KV-cache support story
-is stack-dependent. Treat NVFP4 hot-KV as a support gate, not an assumed fact.
+If NVFP4 hot-KV is not supported in TRT-LLM, **do not block the hackathon**. Fall back to FP8 and preserve the serving-capacity experiment.
 
 The probe result is written to `results/env_probe.json` and must exist before any benchmark runs.
 
 ## Blackwell KV Runtime: Core Thesis
 
-This repo validates that on Blackwell/B200, a hot/cold KV lifecycle can improve serving economics for reuse-heavy long-context inference. The hot decode path uses the fastest practical supported KV representation in the serving runtime, and the cold reusable tier stores stale prefixes for later restore. The metric of success is not compression ratio alone, but lower HBM pressure, more concurrent sessions, better TTFT under reuse, or longer effective context.
+This repo validates that on Blackwell/B200, an NVFP4 hot KV tier plus an offloaded/compressed secondary KV tier can let the same GPU or node serve more concurrent sessions, longer effective context, or both.
 
-- **Tier 0 — Hot KV:** vLLM FP8 KV cache (stable documented path)
-- **Tier 0b — Experimental Blackwell enhancement:** NVFP4-aware hot path only if runtime support is explicitly verified
-- **Tier 1 — Cold / reusable KV:** LMCache-managed storage, host RAM first, optional compression via KVTC candidate path
+- **Tier 0 — Hot KV:** TensorRT-LLM NVFP4 KV cache (primary Blackwell thesis)
+- **Tier 0 fallback:** TensorRT-LLM FP8 KV cache (if NVFP4 not supported)
+- **Tier 1 — Secondary offload:** Host memory via TRT-LLM KV offload / eviction / reuse
+- **Tier 1 compression:** KVTC codec candidate on the offloaded tier
 
-**Goal:** Improve serving economics via KV reuse and better lifecycle management, not compression ratio alone.
+**Follow-up compatibility path:** vLLM with FP8 KV cache + LMCache cold/warm reusable KV layer.
 
-Rules: do not replace the inference engine, do not block on undocumented NVFP4 hot-KV assumptions in vLLM, keep sink tokens and recent window protected, treat pre-RoPE vs post-RoPE as explicit research question, pay decode/reconstruction cost on promotion not every token.
+**Goal:** Improve serving economics via NVFP4 hot-tier efficiency and KV reuse/offload, not compression ratio alone.
+
+Rules: do not replace the inference engine, do not start with vLLM + LMCache as primary, keep sink tokens and recent window protected, pay decode/reconstruction cost on promotion not every token.
 
 See `TIERED_KV_ARCHITECTURE.md` for the full architectural specification.
 
 ## Execution Priority
 
-Follow the 8-step execution order above. Do not skip steps. Do not run multi-node before single-GPU and one-node are stable. TensorRT-LLM / NVFP4 comparison only if time and support permit. Do not block on undocumented NVFP4 hot-KV assumptions in vLLM.
+Follow the 11-step execution order above. Do not skip steps. Do not run multi-node before single-GPU and one-node are stable. Do not start with Kimi K2.5. Do not start with vLLM + LMCache as the primary runtime path.
 
 ## What To Read First
 
@@ -148,7 +156,9 @@ Claude subagents live under `.claude/agents/`.
 - Start from the existing repo state instead of assuming hidden infrastructure.
 - Prefer code changes over broad strategy notes.
 - When the latest behavior matters, use official docs and upstream repos.
-- Keep `LMCache` sources, `vLLM` sources, and `KVTC` or `NVFP4` sources separate.
-- If you propose a new hot-path representation, prove the `p95` decode latency story.
+- Keep TRT-LLM sources, vLLM sources, LMCache sources, KVTC sources, and NVFP4 sources separate.
+- If you propose a new hot-path representation, prove the p95 decode latency story.
 - If you propose profiling, keep it scoped so an allocated GPU can actually run it.
 - When updating shared skills, run `bash scripts/sync_skills.sh` so `.claude/skills/` stays in sync.
+- Do not use KVTC paper as evidence for TRT-LLM behavior.
+- Do not use NVIDIA NVFP4 docs as proof of vLLM hot-KV support.

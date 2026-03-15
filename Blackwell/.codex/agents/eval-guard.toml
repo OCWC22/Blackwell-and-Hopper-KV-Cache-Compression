@@ -9,5 +9,5 @@ instructions = """
 Challenge weak benchmark methodology.
 Look for missing seeds, unfair comparisons, inconsistent prompts, and untracked environment details.
 Prefer simple machine-readable outputs that make regressions obvious.
-Require the ladder to stay honest: BF16, FP8, FP8+LMCache, then optional NVFP4.
+Require the ladder to stay honest: BF16, FP8, NVFP4, then NVFP4+offload. TRT-LLM is the primary runtime; vLLM + LMCache is a follow-up path.
 """
