@@ -1,53 +1,63 @@
 # Blackwell KV Runtime Agent Guide
 
-This directory is the 24-hour Blackwell hackathon harness.
-
-The immediate job is to validate a concrete runtime thesis:
-
-- hot KV in native `NVFP4`
-- warm or cold KV in `KVTC`
-- low-latency promotion back into the active decode path
-- quality protection that keeps the idea honest
-
 ## Mission
 
-Run this ladder in order:
+Validate one concrete systems hypothesis on Blackwell / B200:
 
-1. `BF16` or default KV baseline
-2. `FP8` KV baseline
-3. native `NVFP4` KV baseline
-4. optional `LMCache` or raw host-path baseline
-5. `NVFP4 + KVTC` tiering path
-6. promotion and protection ablations
+**A tiered KV runtime can improve real inference serving economics by keeping hot active KV on GPU and storing reusable cold/warm KV in a cheaper tier, then restoring it only when reuse happens.**
 
-If the runtime cannot defend itself against `FP8` or native `NVFP4`, it is not ready.
+The outcome we care about is not compression ratio alone.
 
-## Non-Negotiable Assumptions
+The outcome we care about is at least one of:
+- more concurrent sessions per GPU
+- lower peak HBM usage
+- longer effective context
+- better TTFT on repeated-prefix traffic
+- better tokens served per joule
 
-- Target Blackwell first.
-- `NVFP4` is the hot or active-KV format.
-- `KVTC` is a warm or cold representation unless hot-path latency proves acceptable.
-- `vLLM` remains the active serving baseline.
-- `LMCache` remains the offload or storage baseline when relevant.
+while keeping:
+- p95 / p99 decode latency acceptable
+- quality degradation bounded
+
+We are not measuring compression ratios. We are measuring whether tiering changes serving economics.
+
+This repo is not building a new inference engine.
+This repo is testing a KV-lifecycle controller around existing serving stacks.
+
+## Execution Ladder
+
+Run this ladder in order. Do not skip steps.
+
+1. **Support gate** — run `scripts/env_probe.sh`, determine NVFP4/FP8 KV support
+2. `BF16` or default KV baseline
+3. `FP8` KV baseline
+4. `NVFP4` KV baseline (only if support gate passes)
+5. Tiered experiment — hot GPU tier + host RAM cold tier with demand promotion
+6. Policy ablation — demand vs eager promotion
+
+Each step answers a concrete question about serving capacity, not about compression.
+
+## Non-Negotiable Constraints
+
+- Target Blackwell / B200 first.
+- Hot-tier KV format depends on support gate: NVFP4 if verified, FP8 as fallback.
+- `KVTC` is a warm or cold tier unless hot-path latency proves acceptable.
+- Use whichever runtime (vLLM or TRT-LLM) produces a clean baseline first.
 - Prefer Slurm-safe execution. Keep long jobs out of login nodes.
 - Store machine-readable outputs under `results/` and job logs under `logs/`.
+- Do not assume NVFP4 hot-KV support — treat it as a stack support gate.
+- Do not couple KVTC integration risk with tiering risk on day zero.
 
-## Hardware Facts That Must Influence Decisions
+## Hardware Context
 
-- `NVFP4` is native on Blackwell and should be treated as a real hardware primitive, not an emulation.
+- `NVFP4` is native on Blackwell SM120 and should be treated as a real hardware primitive, not an emulation.
 - The interesting question is not "can we compress KV?" The interesting question is "can we reduce HBM pressure without giving the latency back during promotion?"
 - If a proposal only improves storage ratio but regresses `p95` decode latency, it loses.
+- NVIDIA documents NVFP4 as a Blackwell-native format, but KV-cache support is stack-dependent.
 
 ## Tiered Architecture
 
-We are not choosing between KVTC and NVFP4. We are building a two-tier system:
-
-- **Tier 0 (GPU HBM):** NVFP4 active KV — Blackwell-native, decode consumes from here
-- **Tier 1 (host/SSD/remote):** KVTC bitstream — warm/cold reusable KV at 20×+ compression
-- **Promotion:** KVTC decode → FP8 staging → NVFP4 repack → active blocks (cost paid once on reuse)
-- **Protection:** 4 attention sink tokens + 128 recent tokens always uncompressed
-
-See `TIERED_KV_ARCHITECTURE.md` for full specification including ModelOpt recipe, KVTC calibration workflow, promotion policies, and success criteria.
+See `TIERED_KV_ARCHITECTURE.md` for the full specification organized into three buckets: upstream facts, repo hypotheses, and must-be-measured metrics.
 
 ## Source Of Truth Files
 
@@ -59,10 +69,12 @@ Read these first:
 - `PROMPT_BLACKWELL_NVFP4_KVTC.md`
 - `BLACKWELL_24H_PRD.md`
 - `B200_SLURM_EVAL_RUNBOOK.md`
-- `scripts/check_cluster.sh`
-- `scripts/check_gpu.sh`
-- `scripts/baseline_inference.sh`
+- `scripts/env_probe.sh`
 - `scripts/run_baseline.py`
+- `scripts/run_tiered_experiment.py`
+- `scripts/compare_results.py`
+- `scripts/baseline_single_gpu.sbatch`
+- `scripts/baseline_one_node.sbatch`
 
 ## Shared Repo Skills
 

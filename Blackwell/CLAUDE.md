@@ -17,11 +17,40 @@ Run this ladder in order:
 ## Core Constraints
 
 - Blackwell is the real target.
-- `NVFP4` is the hot active-KV format.
+- The hot active-KV format depends on stack support (NVFP4 if verified, FP8 as fallback).
 - `KVTC` is a warm or cold tier unless a hot-path use proves acceptable.
 - Keep long-running work Slurm-safe and reproducible.
 - Save benchmark artifacts in `results/` and batch logs in `logs/`.
-- Optimize for latency and quality first, then memory savings.
+- Optimize for serving efficiency first (sessions, HBM, TTFT), then memory savings.
+
+## Support Gate (Run Before Building Thesis)
+
+Before implementing the tiered runtime, run `scripts/env_probe.sh` and verify:
+
+1. **GPU model** — must contain B200 or B100 (reject if Hopper or older)
+2. **Driver version** — >= 570.x for Blackwell support
+3. **CUDA version** — >= 12.8
+4. **Runtime version** — vLLM and/or TensorRT-LLM version
+5. **Hot-tier KV support** — determine which path is available:
+   - **NVFP4 hot KV**: check if vLLM accepts `kv_cache_dtype="nvfp4"` or TRT-LLM loads NVFP4-KV checkpoint
+   - **FP8 hot KV**: check if vLLM accepts `kv_cache_dtype="fp8"` (baseline gate)
+   - **Unsupported / unclear**: neither path works cleanly
+
+**Decision tree:**
+
+| Gate result | Action |
+|-------------|--------|
+| NVFP4 hot-KV supported | Run full ladder: BF16 → FP8 → NVFP4 → tiered |
+| FP8 hot-KV only | Run: BF16 → FP8 → tiered with FP8 hot tier |
+| Neither supported | Stop. Report env_probe.json. Do not proceed. |
+
+If NVFP4 hot-KV is not clearly supported in the chosen stack, **do not block the hackathon**.
+Pivot to the nearest stable hot-tier baseline and preserve the serving-capacity experiment.
+
+NVIDIA clearly documents NVFP4 as a Blackwell-native format, but the KV-cache support story
+is stack-dependent. Treat NVFP4 hot-KV as a support gate, not an assumed fact.
+
+The probe result is written to `results/env_probe.json` and must exist before any benchmark runs.
 
 ## Blackwell KV Runtime: Core Thesis
 
@@ -46,10 +75,12 @@ See `TIERED_KV_ARCHITECTURE.md` for the full architectural specification.
 - `BLACKWELL_24H_PRD.md`
 - `B200_SLURM_EVAL_RUNBOOK.md`
 - `QUICKSTART_PROMPTS.md`
-- `scripts/check_cluster.sh`
-- `scripts/check_gpu.sh`
-- `scripts/baseline_inference.sh`
+- `scripts/env_probe.sh`
 - `scripts/run_baseline.py`
+- `scripts/run_tiered_experiment.py`
+- `scripts/compare_results.py`
+- `scripts/baseline_single_gpu.sbatch`
+- `scripts/baseline_one_node.sbatch`
 
 ## Shared Skills
 

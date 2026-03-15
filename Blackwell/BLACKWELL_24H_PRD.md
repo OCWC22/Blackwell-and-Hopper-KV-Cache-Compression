@@ -1,134 +1,174 @@
-# Blackwell 24-Hour PRD
+# Blackwell Hackathon PRD
 
 ## Objective
 
-Validate a Blackwell-native KV runtime that keeps hot KV in `NVFP4`, uses `KVTC` as a warm or cold tier, and shows a defensible memory-versus-latency-versus-quality tradeoff on `B200` hardware.
+By end of day, produce one credible Blackwell/B200 serving result:
 
-## Why This Matters
+**Show that a tiered KV runtime improves effective serving capacity on a reuse-heavy long-context workload.**
 
-- it is the most credible hackathon path on the hardware we actually have
-- it produces a product-shaped demo instead of a speculative kernel story
-- it can roll forward into a company wedge around KV-memory runtime infrastructure
+This repo is testing a KV-lifecycle controller around existing serving stacks, not building a new engine.
+
+## Primary KPI
+
+Achieve at least one of:
+
+| Target | Threshold |
+|--------|-----------|
+| More concurrent sessions | ≥25% higher max sessions at fixed latency target |
+| Lower peak HBM | ≥20% reduction vs best non-tiered baseline |
+| Better TTFT | Materially better on repeated-prefix traffic |
+| Longer effective context | Materially longer at same GPU memory budget |
+
+While keeping:
+
+| Guard rail | Threshold |
+|------------|-----------|
+| p95 TPOT regression | ≤10% vs best non-tiered baseline |
+| p99 TPOT regression | ≤15% vs best non-tiered baseline |
+| Quality delta | ≤1% vs bf16 baseline on chosen eval |
+
+These are hackathon-grade thresholds, not production guarantees.
 
 ## Non-Goals
 
-- do not build a new inference engine
-- do not replace `vLLM`
-- do not replace `LMCache`
-- do not treat `KVTC` as a guaranteed hot-path representation
-- do not run giant multi-node jobs before the single-node path is real
+- Do not build a new inference engine
+- Do not replace vLLM or TRT-LLM or LMCache
+- Do not treat KVTC as a guaranteed hot-path representation
+- Do not run multi-node jobs before the single-GPU path works
+- Do not claim NVFP4 hot-KV support unless verified on the chosen stack
+- Do not couple KVTC integration risk with tiering risk on day zero
 
 ## Deliverables
 
-1. aligned `BF16`, `FP8`, and `NVFP4` baseline results
-2. first `NVFP4 + KVTC` tiering result
-3. one explicit promotion-policy ablation
-4. one profile or bottleneck explanation
-5. one short decision memo: continue, pivot, or kill
+1. `results/env_probe.json` — support gate result
+2. Aligned baseline results (bf16, fp8, nvfp4 if supported)
+3. First tiered KV result (hot GPU + host RAM cold tier)
+4. One promotion-policy ablation (demand vs eager)
+5. One benchmark comparison table (via `scripts/compare_results.py`)
+6. One bottleneck summary
+7. Exact rerun commands for every result
 
 ## Acceptance Criteria
 
-- results are machine-readable
-- results include quality and latency together
-- every run captures model, hardware, context, batch size, and KV mode
-- the benchmark ladder is honest
-- the repo can be handed to another engineer without extra oral context
+- Every result JSON matches the canonical schema from `scripts/run_baseline.py`
+- `scripts/compare_results.py` can read every result and produce the comparison table
+- Results include quality and latency together, not memory alone
+- Every run captures model, hardware, context, batch size, KV mode, and workload type
+- The benchmark ladder is honest (support-gate results recorded, no overclaims)
+- The repo can be handed to another engineer without oral explanation
 
 ## Workstreams
 
-### Workstream 0: environment and cluster verification
+### WS0: Support Gate and Environment (20 min)
 
-Tasks:
+Run `scripts/env_probe.sh` to produce `results/env_probe.json`.
 
-1. verify B200 visibility on the target cluster or node
-2. capture `nvidia-smi`, driver, CUDA, and Slurm metadata
-3. record shared-storage and scratch-path assumptions
-4. make a single source of truth for run commands
+Must capture: GPU model, driver, CUDA, Python, vLLM version, TRT-LLM version, LMCache version, filesystem paths, NVFP4/FP8 KV support status.
 
-### Workstream 1: baseline harness hardening
+Decision: full ladder (NVFP4 supported) or reduced ladder (FP8 only) or stop (neither).
 
-Tasks:
+### WS1: Baseline Harness (45 min)
 
-1. ensure `scripts/run_baseline.py` writes stable JSON
-2. ensure `scripts/baseline_inference.sh` is safe on shared Slurm
-3. add explicit KV mode metadata
-4. verify that repeated runs are comparable
+Harden `scripts/run_baseline.py` to accept `--model`, `--context-length`, `--requests`, `--concurrency`, `--kv-mode`, `--workload-type`, `--engine`, `--output`.
 
-### Workstream 2: single-GPU Blackwell ladder
+Must emit stable JSON with: TTFT p50/p95, TPOT p50/p95/p99, throughput, peak HBM, GPU power, cache hit rate, quality placeholder.
 
-Tasks:
+Verify with: `python scripts/run_baseline.py --kv-mode bf16 --context-length 8192 --requests 2`
 
-1. run `BF16` or default KV
-2. run `FP8`
-3. run native `NVFP4`
-4. compare memory footprint, `p50`, `p95`, throughput, and quality
+### WS2: Aligned Baselines (60 min)
 
-### Workstream 3: one-node B200 sweep
+Model: `Qwen/Qwen3-30B-A3B` (fallback: `Qwen/Qwen3-32B`)
 
-Tasks:
+Workload: `repeated_prefix`
 
-1. scale the aligned run matrix to one full B200 node if the stack supports it
-2. capture node-level metadata
-3. compare single-GPU versus one-node behavior
-4. confirm that the runbook works without manual repair
+| Variant | Context | Runs |
+|---------|---------|------|
+| bf16 | 8192 | 1 |
+| fp8 | 8192 | 1 |
+| nvfp4 | 8192 | 1 (if support gate passes) |
+| bf16 | 32768 | 1 |
+| fp8 | 32768 | 1 |
 
-### Workstream 4: first `NVFP4 + KVTC` integration
+Output: `results/baseline_{variant}_{context}.json`
 
-Tasks:
+### WS3: First Tiered Experiment (75 min)
 
-1. define the resident hot tier
-2. define what goes to `KVTC`
-3. log promotion and protection policy settings
-4. run one first integrated result
+Run `scripts/run_tiered_experiment.py` with:
+- Hot tier: GPU KV (fp8 or nvfp4 depending on support gate)
+- Cold tier: host RAM
+- Promotion policy: demand (default)
+- Protection: 4 sink tokens, 128 recent tokens
 
-### Workstream 5: promotion-policy ablations
+Must record: offload latency, restore/promotion latency, cold store size, cache hit rate, TTFT cold vs warm.
 
-Tasks:
+This step validates the serving economics hypothesis. The question is whether your policy improves outcomes, not whether offloading exists (LMCache and TRT-LLM already show that).
 
-1. eager promotion versus demand promotion
-2. protected recent window on versus off
-3. protected sink or pivot tokens on versus off
-4. document what changed in latency and quality
+### WS4: Policy Ablation (45 min)
 
-### Workstream 6: profiling and bottleneck analysis
+Compare demand promotion vs eager promotion using the same tiered experiment script.
 
-Tasks:
+Output: two tiered result JSONs, one comparison via `scripts/compare_results.py`.
 
-1. capture at least one `nsys` or `ncu` run
-2. identify whether the bottleneck is decode, promotion, memory traffic, or framework overhead
-3. record the top three next optimizations
+### WS5: One-Node Scaling (30 min, only after WS2 succeeds)
 
-### Workstream 7: decision memo and handoff
+Submit `scripts/baseline_single_gpu.sbatch` for bf16/fp8/nvfp4 via env vars.
 
-Tasks:
+If single-GPU works, submit `scripts/baseline_one_node.sbatch` for the same matrix.
 
-1. summarize the benchmark table
-2. summarize the bottleneck analysis
-3. decide whether the idea should continue after the hackathon
-4. leave exact commands and files for the next engineer
+Do not change multiple variables at once.
+
+### WS6: Decision Memo (30 min)
+
+Produce:
+- `results/comparison.md` — benchmark table from `scripts/compare_results.py`
+- One-paragraph bottleneck analysis
+- One-paragraph continue/pivot/kill recommendation
+- Exact rerun commands
 
 ## Evaluation Matrix
 
-Minimum matrix:
+Minimum viable matrix:
 
-- models: one Llama-family model, one Qwen-family model if time allows
-- contexts: `8k`, `32k`, `64k`
-- modes: `BF16`, `FP8`, `NVFP4`, `NVFP4 + KVTC`
-- policy ablations: recent-window protection, sink or pivot-token protection, eager versus demand promotion
+| Variant | Model | Context | Workload | Notes |
+|---------|-------|---------|----------|-------|
+| bf16 | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | baseline ceiling |
+| fp8 | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | first low-precision |
+| nvfp4 | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | if support gate passes |
+| tiered_demand | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | demand promotion |
+| tiered_eager | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | eager promotion |
+| bf16 | Qwen/Qwen3-30B-A3B | 32768 | repeated_prefix | long-context baseline |
+| fp8 | Qwen/Qwen3-30B-A3B | 32768 | repeated_prefix | long-context fp8 |
+| tiered_demand | Qwen/Qwen3-30B-A3B | 32768 | repeated_prefix | long-context tiered |
 
 ## Kill Criteria
 
-- `NVFP4 + KVTC` loses materially on `p95` decode latency and does not recover enough memory to matter
-- quality drops clearly versus the `NVFP4` baseline even after basic protection policies
-- the implementation surface is too unstable to hand off cleanly
+Stop or pivot if:
+
+1. Hot-tier format support is not available and blocks the entire stack
+2. Restore/promotion cost dominates so badly that reuse no longer helps
+3. p95 latency blows up without enough capacity gain to compensate
+4. Quality loss is obvious and cannot be fixed with simple protection
+5. Implementation becomes engine-rewrite territory
+6. One-node execution is unstable and obscures the result
+
+If blocked: fall back to nearest stable baseline, preserve the serving-capacity experiment, keep moving.
+
+## Scope Cutting Order
+
+Cut in this order if time is short:
+
+1. Multi-node — cut first
+2. Full KVTC integration — cut second
+3. Giant models — cut third
+4. **Never cut:** aligned baseline table, restore timing, one serving-facing KPI
 
 ## References
 
-- `TIERED_KV_ARCHITECTURE.md`: full architectural specification for NVFP4 hot + KVTC warm/cold tiering
-- `blackwell_kv_hackathon_context.md`: execution brief, validation ladder, and source notes
-- NVIDIA NVFP4 overview: <https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/>
-- NVIDIA NVFP4 KV cache blog: <https://developer.nvidia.com/blog/optimizing-inference-for-long-context-and-large-batch-sizes-with-nvfp4-kv-cache>
-- NVIDIA TRT-LLM KV cache early reuse: <https://developer.nvidia.com/blog/5x-faster-time-to-first-token-with-nvidia-tensorrt-llm-kv-cache-early-reuse/>
+- `TIERED_KV_ARCHITECTURE.md`: architectural specification (facts vs hypotheses vs measurements)
+- `blackwell_kv_hackathon_context.md`: execution brief, validation ladder, source notes
+- NVIDIA NVFP4: <https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/>
+- NVIDIA NVFP4 KV cache: <https://developer.nvidia.com/blog/optimizing-inference-for-long-context-and-large-batch-sizes-with-nvfp4-kv-cache>
+- NVIDIA TRT-LLM KV reuse: <https://developer.nvidia.com/blog/5x-faster-time-to-first-token-with-nvidia-tensorrt-llm-kv-cache-early-reuse/>
 - KVTC paper (ICLR 2026): <https://openreview.net/forum?id=tMiBQXQ0Cm>
 - vLLM quantized KV cache: <https://docs.vllm.ai/usage/quantization/quantized_kvcache/>
 - LMCache docs: <https://docs.lmcache.ai/>
