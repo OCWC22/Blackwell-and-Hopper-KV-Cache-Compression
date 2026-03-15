@@ -59,6 +59,21 @@ Do not block on undocumented NVFP4 hot-KV assumptions in vLLM.
 
 See `TIERED_KV_ARCHITECTURE.md` for the full specification organized into three buckets: upstream facts, repo hypotheses, and must-be-measured metrics.
 
+## Final Runtime Architecture
+
+Primary software path:
+- vLLM as serving engine
+- FP8 KV cache as stable documented hot tier
+- LMCache as cold/warm reusable KV layer
+
+Blackwell enhancement path:
+- ModelOpt NVFP4 checkpoint path where supported
+- experimental NVFP4 hot-tier path only if explicitly verified
+
+Compression path:
+- KVTC is a candidate codec for LMCache cold-tier storage
+- do not make perfect KVTC integration a blocker for the first serving-capacity result
+
 ## Source Of Truth Files
 
 Read these first:

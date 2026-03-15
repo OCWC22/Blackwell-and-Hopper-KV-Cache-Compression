@@ -74,6 +74,7 @@ See `TIERED_KV_ARCHITECTURE.md` for the full architectural specification.
 3. vLLM + LMCache cold-tier reuse
 4. one promotion / reuse-policy ablation
 5. one-node run only after single-GPU success
+6. TensorRT-LLM / NVFP4 comparison only if time and support permit
 
 Do not block on undocumented NVFP4 hot-KV assumptions in vLLM.
 

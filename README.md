@@ -4,7 +4,7 @@ This repository is now split into two deliberate tracks:
 
 ## Tracks
 
-- `Blackwell/`: the hackathon execution lane. This is where we validate a Blackwell-native KV runtime that keeps hot KV in `NVFP4`, uses `KVTC` for warm or cold retention, and optimizes promotion latency, memory footprint, and quality over a 24-hour window.
+- `Blackwell/`: the hackathon execution lane. This is where we validate a vLLM + LMCache compatible tiered KV runtime with FP8 KV cache as the stable hot tier, LMCache as the cold/warm reusable KV layer, and KVTC as a cold-tier codec candidate, optimizing serving economics (sessions, HBM, TTFT) and quality over a 24-hour window.
 - `Hopper/`: the longer-horizon research lane. This is where we study Hopper `H100` and `H200` paths that emulate some of the Blackwell KV economics with FP4-like packed storage, direct FP8 reconstruction, and aggressive quality protection.
 
 ## Operating Principle
