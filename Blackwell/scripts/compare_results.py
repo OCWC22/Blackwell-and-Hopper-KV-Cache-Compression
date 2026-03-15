@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Compare benchmark results and produce a markdown table + bottleneck summary.
 
+Supports comparing results across engines (TensorRT-LLM primary, vLLM follow-up).
+
 Reads result JSON files from results/ and produces:
   1. Markdown comparison table (grouped by scenario_id when available)
   2. Percentage deltas vs bf16 baseline
@@ -79,7 +81,7 @@ def build_comparison_table(results):
         return "No results to compare.\n"
 
     headers = [
-        "Run ID", "Scenario", "KV Mode", "Tiered", "Context", "Requests",
+        "Run ID", "Engine", "Scenario", "KV Mode", "Tiered", "Context", "Requests",
         "TTFT p50", "TTFT p95", "TPOT p50", "TPOT p95",
         "Throughput", "Peak HBM", "Power", "Cache Hit",
     ]
@@ -90,7 +92,9 @@ def build_comparison_table(results):
         t = r.get("tiering", {})
         model = r.get("model", {})
         wl = r.get("workload", {})
+        rt = r.get("runtime", {})
 
+        engine = rt.get("engine", "?")
         kv_mode = model.get("kv_mode", model.get("kv_mode_requested", "?"))
         tiered = "yes" if t.get("enabled") else "no"
 
@@ -100,6 +104,7 @@ def build_comparison_table(results):
 
         rows.append([
             r.get("run_id", "?")[:40],
+            engine[:12],
             scenario[:20],
             kv_mode,
             tiered,

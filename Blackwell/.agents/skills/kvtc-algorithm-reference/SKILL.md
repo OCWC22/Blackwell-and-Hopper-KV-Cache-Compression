@@ -296,19 +296,18 @@ KVTC is compatible with token eviction methods (orthogonal) but has not been val
 
 ---
 
-## LMCache Integration Path
+## Integration Path
 
 KVTC does not alter KV cache structure or attention computation. Integration:
 
 ```
-LMCache remote_serde hook (currently CacheGen):
-  Replace with KVTC codec:
-
+Primary (hackathon): TRT-LLM secondary offload tier
+  Compress evicted KV before writing to host RAM:
   encode(kv_tensor, pca_basis, bit_alloc) → compressed_bytes
   decode(compressed_bytes, pca_basis) → kv_tensor
 
-LMCache manages: host/disk/remote storage, async I/O, cache eviction
-KVTC provides: the codec (compress/decompress)
+Follow-up: LMCache remote_serde hook (currently CacheGen)
+  Replace CacheGen with KVTC codec for vLLM compatibility path
 ```
 
 The KVTC paper's own end-to-end evaluation uses LMCache/vLLM for host-memory storage, with KVTC as the compression layer. The authors explicitly note that compressing KV for GPU HBM storage (rather than offload) would bring extra latency benefits but is more involved.

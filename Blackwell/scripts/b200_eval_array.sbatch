@@ -10,6 +10,10 @@
 #SBATCH --output=logs/%x-%A_%a.out
 #SBATCH --error=logs/%x-%A_%a.err
 
+# B200 array evaluation: iterates over rows in the eval matrix TSV.
+# Primary runtime: TensorRT-LLM. TRT-LLM variants are the primary rows;
+# vLLM variants are follow-up/fallback rows.
+
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

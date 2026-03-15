@@ -1,32 +1,48 @@
 # B200 Slurm Eval Runbook
 
-Retrieved and updated on `2026-03-14`.
+Retrieved and updated on `2026-03-15`.
 
-This runbook is the operational handoff for multi-node `B200` evals.
+This runbook is the operational handoff for B200 evals using TensorRT-LLM as the primary engine.
 
 ## Core Rule
 
-Do not jump straight to a large multi-node sweep.
+**Single-GPU first. Then one-node. Then multi-node.** No exceptions.
 
 Run the ladder in this exact order:
 
-1. login-node environment verification
-2. single-GPU Blackwell sanity run
-3. one-node baseline sweep
-4. one-node `FP8+LMCache` sweep
-5. only then multi-node `B200` runs
+1. Login-node environment verification + support gate
+2. Single-GPU TRT-LLM sanity run (BF16 → FP8 → NVFP4)
+3. One-node TRT-LLM sweep (NVFP4 baselines)
+4. One-node TRT-LLM NVFP4 + host offload
+5. Optional: Kimi K2.5 stretch (node-level only)
+6. Optional: multi-node B200 runs (only after one-node is stable)
 
 That order matches standard Slurm best practice: use `sbatch` for repeatable jobs, keep long work off login nodes, and scale only after the smaller shape is stable. See `[R1]` and `[R2]`.
+
+## Stop Conditions
+
+Stop immediately and report if:
+
+1. **Wrong GPU** — `nvidia-smi` does not show B200 or B100. Do not proceed on Hopper or older.
+2. **TRT-LLM not installed** — TensorRT-LLM is not available in the environment. Install before proceeding.
+3. **No KV dtype support** — neither NVFP4 nor FP8 KV cache works in TRT-LLM. Report env_probe.json.
+4. **Driver too old** — driver version < 570.x. Blackwell requires 570+.
+5. **CUDA too old** — CUDA version < 12.8.
+
+If any stop condition triggers, document the blocker in `results/env_probe.json` and do not submit benchmark jobs.
 
 ## Pre-Flight Checklist
 
 Before submitting anything expensive:
 
-1. confirm the target partition and quota
-2. confirm `B200` visibility with `nvidia-smi`
-3. confirm shared filesystem and node-local scratch path
-4. confirm the repo `git` SHA
-5. confirm the model path and output path
+1. Run `bash scripts/env_probe.sh` and verify `results/env_probe.json`
+2. Confirm the support gate: is_blackwell, nvfp4_kv_supported, fp8_kv_supported, trtllm_version
+3. Confirm the target partition and quota
+4. Confirm `B200` visibility with `nvidia-smi`
+5. Confirm shared filesystem and node-local scratch path
+6. Confirm the repo `git` SHA
+7. Confirm the model path and output path
+8. Confirm TensorRT-LLM is functional: `python -c "import tensorrt_llm; print(tensorrt_llm.__version__)"`
 
 ## What Every Job Must Capture
 
@@ -38,10 +54,13 @@ Every eval job should save:
 - `scontrol show job $SLURM_JOB_ID`
 - `git rev-parse HEAD`
 - exact eval command
+- engine name and version (`tensorrt_llm`)
 - model name
 - context length
 - batch size
-- KV mode
+- KV mode (bf16, fp8, nvfp4)
+- offload enabled (yes/no)
+- cold-tier codec (none, kvtc)
 
 If we do not capture that metadata, the run is not trustworthy enough to compare later.
 
@@ -57,7 +76,7 @@ Use `sbatch` with one node and explicit `--gpus-per-node`.
 
 ### Multi-node benchmark
 
-Use `sbatch` with explicit `--nodes`, `--ntasks-per-node`, `--gpus-per-node`, and a consistent launch pattern.
+Use `sbatch` with explicit `--nodes`, `--ntasks-per-node`, `--gpus-per-node`, and a consistent launch pattern. Only after one-node is stable.
 
 ### Job arrays
 
@@ -83,60 +102,109 @@ If the serving stack wants one process per GPU instead, change the launch patter
 
 ## Weekend Eval Ladder
 
-### Stage 0: verify the cluster
+### Stage 0: Environment Verify + Support Gate
 
 Run:
 
 ```bash
-bash scripts/check_cluster.sh
+bash scripts/env_probe.sh
+cat results/env_probe.json
 ```
 
-### Stage 1: single-GPU sanity check
+Check: is_blackwell=true, trtllm_version exists, nvfp4_kv_supported or fp8_kv_supported.
+
+If this fails, stop. Do not proceed to Stage 1.
+
+### Stage 1: Single-GPU TRT-LLM Sanity Check
 
 Run:
 
 ```bash
 srun --gpus=1 --time=00:10:00 --pty bash
 bash scripts/check_gpu.sh
+# Quick TRT-LLM smoke test
+python scripts/run_baseline.py --engine tensorrt_llm --kv-mode bf16 --model Qwen/Qwen3-8B-Instruct --context-length 8192 --requests 2 --output results/trtllm_smoke_bf16.json
 exit
 ```
 
-### Stage 2: one-node baseline
+Verify the output JSON has engine: "tensorrt_llm" and all required fields.
 
-Run the generic batch harness with one node and the exact baseline command.
+### Stage 2: Single-GPU TRT-LLM Baseline Sweep
 
-### Stage 3: one-node `FP8+LMCache` sweep
+Run each via sbatch:
 
-Repeat the same harness with:
+```bash
+ENGINE=tensorrt_llm KV_MODE=bf16 SCENARIO_ID=scenario_1_longer_context_gpu sbatch scripts/baseline_single_gpu.sbatch
+ENGINE=tensorrt_llm KV_MODE=fp8 SCENARIO_ID=scenario_1_longer_context_gpu sbatch scripts/baseline_single_gpu.sbatch
+ENGINE=tensorrt_llm KV_MODE=nvfp4 SCENARIO_ID=scenario_1_longer_context_gpu sbatch scripts/baseline_single_gpu.sbatch
+```
 
-- `BF16`
-- `FP8`
-- `FP8+LMCache`
+Wait for completion. Verify all three result JSONs exist and compare:
 
-### Stage 4: optional one-node `NVFP4`
+```bash
+python scripts/compare_results.py --output results/comparison.md
+```
 
-Only if runtime support is verified, run optional NVFP4 enhancement with protection-policy metadata captured.
+### Stage 3: One-Node TRT-LLM NVFP4 Sweep
 
-### Stage 5: multi-node B200
+Only after Stage 2 succeeds. Submit one-node jobs:
+
+```bash
+sbatch \
+  --nodes=1 \
+  --gpus-per-node=8 \
+  --export=ALL,ENGINE=tensorrt_llm,EVAL_COMMAND='python scripts/run_baseline.py --engine tensorrt_llm --kv-mode nvfp4 --context-length 8192' \
+  scripts/b200_eval.sbatch
+```
+
+### Stage 4: One-Node TRT-LLM NVFP4 + Host Offload
+
+Only after Stage 3 succeeds:
+
+```bash
+sbatch \
+  --nodes=1 \
+  --gpus-per-node=8 \
+  --export=ALL,ENGINE=tensorrt_llm,EVAL_COMMAND='python scripts/run_tiered_experiment.py --engine tensorrt_llm --kv-mode nvfp4 --offload-to-host --context-length 8192 --requests 10' \
+  scripts/b200_eval.sbatch
+```
+
+### Stage 5: Optional Kimi K2.5 Stretch (Node-Level Only)
+
+Only after Stage 4 succeeds. Kimi K2.5 is verified on 8x H200 [R10]. Do NOT attempt on single-GPU.
+
+```bash
+sbatch \
+  --nodes=1 \
+  --gpus-per-node=8 \
+  --export=ALL,ENGINE=tensorrt_llm,MODEL=moonshotai/Kimi-K2.5,EVAL_COMMAND='python scripts/run_baseline.py --engine tensorrt_llm --kv-mode nvfp4 --model moonshotai/Kimi-K2.5 --context-length 8192' \
+  scripts/b200_eval.sbatch
+```
+
+### Stage 6: Optional Multi-Node B200
 
 Only after the one-node ladder is stable:
 
 - keep the eval matrix small
-- start with a single model
+- start with a single model (`Qwen/Qwen3-30B-A3B`)
 - start with a small set of contexts
 - save all metadata
 
-## Repo Scripts
+```bash
+sbatch \
+  --nodes=2 \
+  --gpus-per-node=8 \
+  --export=ALL,ENGINE=tensorrt_llm,EVAL_COMMAND='python scripts/run_baseline.py --engine tensorrt_llm --kv-mode nvfp4 --context-length 32768' \
+  scripts/b200_eval.sbatch
+```
 
-This directory includes generic Slurm entrypoints:
+## Example Invocations (TRT-LLM Primary)
 
-- `scripts/b200_eval.sbatch`
-- `scripts/b200_eval_array.sbatch`
-- `scripts/run_b200_eval.sh`
+### Single-GPU baseline
 
-They are intentionally generic so the next engineer can swap in the actual serving command without rewriting the metadata capture layer.
-
-## Example Invocations
+```bash
+ENGINE=tensorrt_llm KV_MODE=nvfp4 SCENARIO_ID=scenario_1_longer_context_gpu sbatch scripts/baseline_single_gpu.sbatch
+```
 
 ### One-node baseline
 
@@ -144,17 +212,17 @@ They are intentionally generic so the next engineer can swap in the actual servi
 sbatch \
   --nodes=1 \
   --gpus-per-node=8 \
-  --export=ALL,EVAL_COMMAND='python scripts/run_baseline.py --kv-mode fp8 --context-length 8192' \
+  --export=ALL,ENGINE=tensorrt_llm,EVAL_COMMAND='python scripts/run_baseline.py --engine tensorrt_llm --kv-mode nvfp4 --context-length 8192' \
   scripts/b200_eval.sbatch
 ```
 
-### Multi-node run
+### One-node NVFP4 + offload
 
 ```bash
 sbatch \
-  --nodes=2 \
+  --nodes=1 \
   --gpus-per-node=8 \
-  --export=ALL,EVAL_COMMAND='python your_launcher.py --kv-mode nvfp4 --context-length 32768' \
+  --export=ALL,ENGINE=tensorrt_llm,EVAL_COMMAND='python scripts/run_tiered_experiment.py --engine tensorrt_llm --kv-mode nvfp4 --offload-to-host --context-length 8192 --requests 10' \
   scripts/b200_eval.sbatch
 ```
 
@@ -163,9 +231,22 @@ sbatch \
 ```bash
 sbatch \
   --array=0-3%1 \
-  --export=ALL,EVAL_COMMAND='python your_launcher.py --kv-mode ${VARIANT} --context-length ${CONTEXT_LENGTH} --batch-size ${BATCH_SIZE}' \
+  --export=ALL,ENGINE=tensorrt_llm,EVAL_COMMAND='python scripts/run_baseline.py --engine tensorrt_llm --kv-mode ${VARIANT} --context-length ${CONTEXT_LENGTH} --batch-size ${BATCH_SIZE}' \
   scripts/b200_eval_array.sbatch
 ```
+
+## Repo Scripts
+
+This directory includes generic Slurm entrypoints:
+
+- `scripts/b200_eval.sbatch`
+- `scripts/b200_eval_array.sbatch`
+- `scripts/run_b200_eval.sh`
+- `scripts/baseline_single_gpu.sbatch`
+- `scripts/baseline_one_node.sbatch`
+- `scripts/env_probe.sh`
+
+They are intentionally generic so the next engineer can swap in the actual serving command without rewriting the metadata capture layer.
 
 ## References
 
@@ -175,3 +256,8 @@ sbatch \
   - <https://slurm.schedmd.com/srun.html>
 - `[R3]` Slurm job arrays
   - <https://slurm.schedmd.com/job_array.html>
+- `[R7]` NVIDIA NVFP4 KV cache blog
+  - <https://developer.nvidia.com/blog/optimizing-inference-for-long-context-and-large-batch-sizes-with-nvfp4-kv-cache>
+- `[R8]` TRT-LLM KV cache system
+  - <https://nvidia.github.io/TensorRT-LLM/advanced/kv-cache-reuse.html>
+- `[R10]` Kimi K2.5 (8x H200 verified) — stretch only

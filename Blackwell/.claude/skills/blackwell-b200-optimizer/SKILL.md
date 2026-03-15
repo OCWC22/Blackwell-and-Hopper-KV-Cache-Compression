@@ -5,18 +5,22 @@ Use this skill when the task involves Blackwell-specific performance tuning, mem
 ## Blackwell Guardrails
 
 - Optimize for Blackwell first.
-- Treat FP8 as the stable hot-KV path; NVFP4 is an optional Blackwell enhancement if runtime support is verified.
-- Focus on HBM pressure, promotion latency, and quality preservation.
+- TensorRT-LLM is the primary hackathon runtime. NVFP4 KV cache is the primary Blackwell hot-tier thesis.
+- FP8 is the fallback if NVFP4 is not supported in TRT-LLM.
+- Secondary memory offload (host RAM) is the warm/cold tier. KVTC compresses the secondary tier.
+- vLLM + LMCache is the follow-up compatibility/productization path.
+- Focus on HBM pressure, eviction/offload latency, promotion latency, and quality preservation.
 - Keep fallback paths available when proposing aggressive optimizations.
 - Do not import Hopper-only assumptions unless explicitly justified.
 - For hardware specs, bandwidth budgets, and ISA details, reference the `b200-architecture` skill.
 
 ## Priorities
 
-1. Reduce hot-tier memory pressure before chasing exotic compression ideas.
-2. Keep the resident FP8 path simple; add NVFP4 only after support gate passes.
-3. Use profiling evidence to justify promotion and runtime claims.
-4. Treat `KVTC` as a secondary representation unless hot-path latency proves acceptable.
+1. Get TRT-LLM + NVFP4 hot-KV baseline working first.
+2. Add secondary-tier offload after hot-tier baseline is stable.
+3. Use profiling evidence to justify eviction/promotion and runtime claims.
+4. Treat `KVTC` as a secondary-tier codec; do not use as hot-path format until latency proves acceptable.
+5. vLLM + LMCache optimization is a follow-up after TRT-LLM results are in.
 
 ## Common Wins
 

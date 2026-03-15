@@ -18,7 +18,7 @@ Follow the order from `B200_SLURM_EVAL_RUNBOOK.md`:
 1. Login-node environment verification (`scripts/check_cluster.sh`)
 2. Single-GPU B200 sanity run (`srun --gpus=1`)
 3. One-node baseline sweep (`sbatch --nodes=1 --gpus-per-node=8`)
-4. One-node `FP8+LMCache` sweep
+4. One-node TRT-LLM `NVFP4+offload` sweep (primary); `FP8+LMCache` sweep (follow-up)
 5. Multi-node B200 runs only after one-node is stable
 
 ## Metadata Capture Requirements

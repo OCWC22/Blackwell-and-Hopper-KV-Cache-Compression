@@ -1,18 +1,21 @@
 # Promotion Policy
 
-Use this skill when: designing tier promotion logic, configuring protected token policies, choosing between eager and demand promotion, implementing hit and miss rate logging, or ablating promotion strategies.
+Use this skill when: designing tier eviction/offload and promotion logic, configuring protected token policies, choosing between eager and demand promotion, implementing hit and miss rate logging, or ablating promotion strategies.
 
 ## Mental Model
 
 ```
-Tier 0: FP8 on HBM (active decode consumes from here; or NVFP4 if support-gated)
-    ↑ promotion
-Tier 1: LMCache-managed cold tier (host RAM / local SSD / remote store; optional KVTC codec)
+Tier 0: NVFP4 on HBM via TRT-LLM (active decode consumes from here; FP8 fallback)
+    ↑ promotion  ↓ eviction/offload
+Tier 1: Secondary offload tier (host RAM / local SSD; optional KVTC codec)
 ```
 
-Promotion path: cold tier decode → FP8 restore → active blocks (or → NVFP4 pack if supported)
+Eviction path: stale/evicted KV → offload to host RAM → optional KVTC compress
+Promotion path: offloaded KV → decompress if KVTC → repack to NVFP4/FP8 → restore to GPU → decode continues
 
 Promotion cost is paid once on reuse, not every token.
+
+TRT-LLM is the primary runtime. vLLM + LMCache promotion policies are a follow-up compatibility path.
 
 ## Promotion Strategies
 
@@ -75,12 +78,13 @@ Every promotion event should log:
 | A3 | Sink protection | off, 4 tokens, 8 tokens |
 | A4 | Compression ratio | 8×, 16×, 32× |
 
-Run each ablation against the FP8-only baseline (or best practical baseline) measuring latency and quality together.
+Run each ablation against the NVFP4-only baseline (or best practical baseline) measuring latency and quality together.
 
 ## Things To Avoid
 
 - Compressing live decode tail
 - Promoting without logging latency and hit rate
 - Hiding policy configuration inside code instead of explicit config files
-- Running ablations without the FP8-only baseline for comparison
+- Running ablations without the NVFP4-only (or FP8-only) baseline for comparison
 - Optimizing promotion latency before having a working end-to-end path
+- Starting with vLLM + LMCache policies before TRT-LLM offload policies are validated

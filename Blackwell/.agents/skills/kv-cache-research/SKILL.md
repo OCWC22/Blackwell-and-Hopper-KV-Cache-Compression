@@ -1,16 +1,19 @@
 # kv-cache-research
 
-Use this skill when the task is about Blackwell experiment design, benchmark structure, ablations, or interpreting memory-versus-latency tradeoffs for the vLLM + LMCache tiered KV runtime.
+Use this skill when the task is about Blackwell experiment design, benchmark structure, ablations, or interpreting memory-versus-latency tradeoffs for the TRT-LLM + NVFP4 + offload tiered KV runtime.
 
 ## Blackwell Benchmark Ladder
 
-Always compare aligned baselines in this order:
+Always compare aligned baselines in this order on TRT-LLM:
 
 1. `BF16` or default KV baseline
 2. `FP8` KV baseline
-3. `FP8 + LMCache` cold/warm reusable KV path
-4. optional `NVFP4` Blackwell enhancement (if runtime support is verified)
-5. promotion and protection ablations
+3. `NVFP4` KV baseline (primary Blackwell thesis)
+4. `NVFP4 + offload` (secondary tier with host memory)
+5. `NVFP4 + offload + KVTC` (compressed secondary tier)
+6. eviction/promotion and protection ablations
+
+vLLM + LMCache experiments are a follow-up compatibility path.
 
 ## Required Metrics (Every Run)
 
@@ -29,7 +32,7 @@ Always compare aligned baselines in this order:
 
 - Models: one Llama-family model, one Qwen-family model if time allows
 - Contexts: `8k`, `32k`, `64k`
-- Modes: `BF16`, `FP8`, `FP8 + LMCache`, optional `NVFP4`
+- Modes: `BF16`, `FP8`, `NVFP4`, `NVFP4 + offload` (TRT-LLM primary); `FP8 + LMCache` (follow-up)
 - Ablations: recent-window protection, sink-token protection, eager vs demand promotion
 
 ## Research Frame

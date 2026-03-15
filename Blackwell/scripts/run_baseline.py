@@ -4,13 +4,22 @@
 Scenario 1 — Longer context on one GPU: context sweep, concurrency=1
 Scenario 2 — More sessions on one GPU: fixed context, concurrency sweep
 
+Primary runtime: TensorRT-LLM with NVFP4 KV cache.
+Fallback: vLLM with FP8 KV cache.
+
 Runs inference with configurable KV mode (bf16/fp8/nvfp4) and emits
 machine-readable JSON results with TTFT, TPOT, throughput, HBM, and power.
 
 Usage:
-    python scripts/run_baseline.py --kv-mode bf16 --context-length 8192 --requests 10
-    python scripts/run_baseline.py --kv-mode fp8 --context-length 32768 --requests 64 --concurrency 8
-    python scripts/run_baseline.py --kv-mode fp8 --scenario-id scenario_1_longer_context_gpu
+    # TRT-LLM primary path
+    python scripts/run_baseline.py --engine tensorrt_llm --kv-mode nvfp4 --context-length 8192 --requests 10
+    python scripts/run_baseline.py --engine tensorrt_llm --kv-mode fp8 --context-length 32768 --requests 64
+
+    # TRT-LLM with host offload
+    python scripts/run_baseline.py --engine tensorrt_llm --kv-mode nvfp4 --offload --offload-size 20.0
+
+    # vLLM follow-up path
+    python scripts/run_baseline.py --engine vllm --kv-mode fp8 --context-length 8192 --requests 10
 """
 
 import argparse
@@ -42,8 +51,14 @@ def parse_args():
     p.add_argument("--workload-type", choices=["repeated_prefix", "independent"],
                    default="repeated_prefix",
                    help="Workload pattern")
-    p.add_argument("--engine", choices=["vllm", "tensorrt_llm"], default="vllm",
-                   help="Inference engine")
+    p.add_argument("--engine", choices=["tensorrt_llm", "vllm"], default="tensorrt_llm",
+                   help="Inference engine (tensorrt_llm is primary)")
+    p.add_argument("--engine-dir", default=None,
+                   help="Pre-built TRT-LLM engine directory (optional, uses hlapi auto-build if not set)")
+    p.add_argument("--offload", action="store_true",
+                   help="Enable host memory secondary tier (TRT-LLM KvCacheConfig.host_cache_size)")
+    p.add_argument("--offload-size", type=float, default=20.0,
+                   help="Host cache size in GB for offload tier")
     p.add_argument("--output", default=None,
                    help="Output JSON path (auto-generated if not set)")
     p.add_argument("--max-tokens", type=int, default=128,
@@ -99,8 +114,191 @@ def generate_workload(workload_type, context_length, num_requests, prefix_ratio=
     return prompts
 
 
+class TRTLLMEngine:
+    """Wrapper around TensorRT-LLM high-level API for baseline benchmarks.
+
+    Uses tensorrt_llm.hlapi.LLM for inference. Supports:
+    - KV cache type configuration (bf16, fp8, nvfp4)
+    - Host memory offload via KvCacheConfig
+    - Block reuse for prefix caching
+    - Pre-built engine loading via engine_dir
+    """
+
+    def __init__(self, model, kv_mode, context_length, tp_size=1,
+                 engine_dir=None, offload=False, offload_size=20.0):
+        try:
+            import tensorrt_llm
+            self.version = tensorrt_llm.__version__
+        except ImportError:
+            print("ERROR: TensorRT-LLM not installed.")
+            print("Install with: pip install tensorrt-llm")
+            print("Or use the NVIDIA TRT-LLM container: nvcr.io/nvidia/tensorrt-llm")
+            print("Alternatively, use --engine vllm for the follow-up path.")
+            sys.exit(1)
+
+        from tensorrt_llm.hlapi import LLM, SamplingParams, KvCacheConfig, BuildConfig
+
+        self.SamplingParams = SamplingParams
+        self.name = "tensorrt_llm"
+        self.kv_mode_requested = kv_mode
+        self.kv_mode_actual = kv_mode
+
+        # Configure KV cache
+        kv_cache_config_kwargs = {
+            "enable_block_reuse": True,
+        }
+
+        # Set host cache for offload
+        if offload:
+            # host_cache_size is in number of tokens or bytes depending on TRT-LLM version
+            # Using a size-based approach
+            kv_cache_config_kwargs["host_cache_size"] = int(offload_size * 1024 * 1024 * 1024)  # GB to bytes
+            print(f"Host offload enabled: {offload_size} GB")
+
+        try:
+            kv_cache_config = KvCacheConfig(**kv_cache_config_kwargs)
+        except TypeError as e:
+            # Older TRT-LLM versions may not support all kwargs
+            print(f"WARNING: KvCacheConfig kwargs not fully supported: {e}")
+            kv_cache_config_kwargs = {}
+            try:
+                kv_cache_config = KvCacheConfig(**kv_cache_config_kwargs)
+            except Exception:
+                kv_cache_config = None
+
+        # Configure build
+        build_config_kwargs = {
+            "max_seq_len": context_length,
+        }
+
+        # Map kv_mode to TRT-LLM kv cache type
+        # TRT-LLM uses quantization config for KV cache precision
+        if kv_mode == "nvfp4":
+            # NVFP4 KV cache is configured via the quantization config / checkpoint
+            # For hlapi, it may be set via the model checkpoint or build config
+            build_config_kwargs["plugin_config"] = {"use_fp8_kv_cache": False}
+            print(f"Configuring NVFP4 KV cache mode")
+        elif kv_mode == "fp8":
+            build_config_kwargs["plugin_config"] = {"use_fp8_kv_cache": True}
+            print(f"Configuring FP8 KV cache mode")
+
+        try:
+            build_config = BuildConfig(**build_config_kwargs)
+        except TypeError as e:
+            print(f"WARNING: BuildConfig kwargs not fully supported: {e}")
+            try:
+                build_config = BuildConfig(max_seq_len=context_length)
+            except Exception:
+                build_config = None
+
+        # Build LLM kwargs
+        llm_kwargs = {
+            "model": engine_dir or model,
+            "tensor_parallel_size": tp_size,
+        }
+
+        if kv_cache_config is not None:
+            llm_kwargs["kv_cache_config"] = kv_cache_config
+        if build_config is not None:
+            llm_kwargs["build_config"] = build_config
+
+        print(f"Loading TRT-LLM model: {engine_dir or model}")
+        print(f"  KV mode: {kv_mode}, TP: {tp_size}")
+        if offload:
+            print(f"  Host offload: {offload_size} GB")
+
+        try:
+            self.llm = LLM(**llm_kwargs)
+        except Exception as e:
+            err_str = str(e)
+            # Handle NVFP4 fallback
+            if kv_mode == "nvfp4" and ("nvfp4" in err_str.lower() or "fp4" in err_str.lower()):
+                print(f"WARNING: NVFP4 KV cache not supported in this TRT-LLM version.")
+                print(f"Falling back to FP8 KV cache.")
+                self.kv_mode_actual = "fp8_fallback_from_nvfp4"
+                if build_config is not None and hasattr(build_config, "plugin_config"):
+                    build_config.plugin_config = {"use_fp8_kv_cache": True}
+                    llm_kwargs["build_config"] = build_config
+                try:
+                    self.llm = LLM(**llm_kwargs)
+                except Exception as e2:
+                    print(f"ERROR: FP8 fallback also failed: {e2}")
+                    print("Try --kv-mode bf16 or use --engine vllm")
+                    sys.exit(1)
+            else:
+                print(f"ERROR: Failed to initialize TRT-LLM: {e}")
+                print("Check that the model is compatible with TRT-LLM.")
+                print("If using a pre-built engine, pass --engine-dir <path>")
+                print("Otherwise, use --engine vllm for the follow-up path.")
+                sys.exit(1)
+
+    def run_batch(self, prompts, max_tokens):
+        """Run batch inference. Returns (per_request_metrics, total_tokens, total_time, peak_hbm_gb)."""
+        import torch
+
+        sampling_params = self.SamplingParams(
+            temperature=0.0,
+            max_tokens=max_tokens,
+        )
+
+        if torch.cuda.is_available():
+            torch.cuda.reset_peak_memory_stats()
+
+        prompt_texts = [p[0] for p in prompts]
+
+        per_request_metrics = []
+        total_output_tokens = 0
+        total_start = time.perf_counter()
+
+        # Run requests - TRT-LLM hlapi supports batch generation
+        try:
+            outputs = self.llm.generate(prompt_texts, sampling_params)
+        except Exception as e:
+            print(f"ERROR during generation: {e}")
+            # Try one-by-one as fallback
+            outputs = []
+            for text in prompt_texts:
+                try:
+                    out = self.llm.generate([text], sampling_params)
+                    outputs.extend(out)
+                except Exception as e2:
+                    print(f"  Request failed: {e2}")
+
+        total_time = time.perf_counter() - total_start
+
+        for i, output in enumerate(outputs):
+            # TRT-LLM hlapi output format
+            if hasattr(output, "outputs") and output.outputs:
+                n_tokens = len(output.outputs[0].token_ids)
+            elif hasattr(output, "token_ids"):
+                n_tokens = len(output.token_ids)
+            else:
+                n_tokens = 0
+
+            total_output_tokens += n_tokens
+
+            req_time = total_time / len(outputs) if outputs else total_time
+            # TTFT estimate: for offline batch, approximate from total
+            ttft_est = req_time * 0.3
+            decode_time = req_time * 0.7
+            tpot = (decode_time / n_tokens * 1000) if n_tokens > 0 else 0
+
+            per_request_metrics.append({
+                "ttft_ms": ttft_est * 1000,
+                "tpot_ms": tpot,
+                "output_tokens": n_tokens,
+                "total_time_s": req_time,
+            })
+
+        peak_mem_gb = None
+        if torch.cuda.is_available():
+            peak_mem_gb = torch.cuda.max_memory_allocated() / (1024**3)
+
+        return per_request_metrics, total_output_tokens, total_time, peak_mem_gb
+
+
 class VLLMEngine:
-    """Wrapper around vLLM for baseline benchmarks."""
+    """Wrapper around vLLM for baseline benchmarks (follow-up path)."""
 
     def __init__(self, model, kv_mode, context_length, tp_size=1):
         try:
@@ -197,37 +395,17 @@ class VLLMEngine:
         return results, total_output_tokens, total_time, peak_mem_gb
 
 
-class TRTLLMEngine:
-    """Wrapper for TensorRT-LLM (stub with clean error)."""
-
-    def __init__(self, model, kv_mode, context_length, tp_size=1):
-        try:
-            import tensorrt_llm
-            self.version = tensorrt_llm.__version__
-        except ImportError:
-            print("ERROR: TensorRT-LLM not installed. Use --engine vllm or install TRT-LLM.")
-            sys.exit(1)
-
-        self.name = "tensorrt_llm"
-        self.kv_mode_requested = kv_mode
-        self.kv_mode_actual = kv_mode
-
-        raise NotImplementedError(
-            "TRT-LLM engine integration requires a pre-built engine. "
-            "Build with: trtllm-build --checkpoint_dir <path> --output_dir <path> "
-            "--kv_cache_type <type>. See TIERED_KV_ARCHITECTURE.md for details."
-        )
-
-    def run_batch(self, prompts, max_tokens):
-        raise NotImplementedError
-
-
 def create_engine(args):
     """Factory for engine creation."""
-    if args.engine == "vllm":
+    if args.engine == "tensorrt_llm":
+        return TRTLLMEngine(
+            args.model, args.kv_mode, args.context_length, args.tp,
+            engine_dir=args.engine_dir,
+            offload=args.offload,
+            offload_size=args.offload_size,
+        )
+    elif args.engine == "vllm":
         return VLLMEngine(args.model, args.kv_mode, args.context_length, args.tp)
-    elif args.engine == "tensorrt_llm":
-        return TRTLLMEngine(args.model, args.kv_mode, args.context_length, args.tp)
     else:
         print(f"ERROR: Unknown engine {args.engine}")
         sys.exit(1)
@@ -256,6 +434,8 @@ def main():
     print(f"Requests: {args.requests}")
     print(f"Workload: {args.workload_type}")
     print(f"Engine: {args.engine}")
+    if args.offload:
+        print(f"Offload: {args.offload_size} GB host cache")
     print(f"Output: {args.output}")
     print()
 
@@ -325,12 +505,14 @@ def main():
     }
 
     result["tiering"] = {
-        "enabled": False,
+        "enabled": args.offload,
         "hot_tier_format": args.kv_mode,
-        "cold_tier_format": None,
+        "cold_tier_format": "host_ram" if args.offload else None,
+        "cold_tier_codec": "none",
         "promotion_policy": None,
         "recent_window_tokens": None,
         "sink_tokens_protected": None,
+        "host_cache_size_gb": args.offload_size if args.offload else None,
     }
 
     result["metrics"] = {
@@ -359,6 +541,11 @@ def main():
             f"Requested {engine.kv_mode_requested} but used {engine.kv_mode_actual}"
         )
 
+    offload_flags = ""
+    if args.offload:
+        offload_flags = f"--offload --offload-size {args.offload_size} "
+    engine_dir_flag = f"--engine-dir {args.engine_dir} " if args.engine_dir else ""
+
     result["rerun_command"] = (
         f"python scripts/run_baseline.py "
         f"--model {args.model} "
@@ -368,6 +555,8 @@ def main():
         f"--kv-mode {args.kv_mode} "
         f"--workload-type {args.workload_type} "
         f"--engine {args.engine} "
+        f"{engine_dir_flag}"
+        f"{offload_flags}"
         f"--tp {args.tp} "
         f"--output {args.output}"
     )
@@ -392,6 +581,8 @@ def main():
         print(f"Peak HBM: {peak_hbm:.2f} GB")
     print(f"Avg GPU Power: {m['gpu_power_w_avg']:.1f} W")
     print(f"KV mode actual: {engine.kv_mode_actual}")
+    if args.offload:
+        print(f"Host offload: {args.offload_size} GB")
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ skills = ["kv-cache-research", "latency-quality-eval"]
 preferred_files = ["configs/", "results/", "scripts/"]
 
 instructions = """
-Design experiments that compare BF16, FP8, FP8+LMCache, and optionally NVFP4 fairly.
+Design experiments that compare BF16, FP8, NVFP4, and NVFP4+offload fairly on TRT-LLM. vLLM + LMCache experiments are a follow-up path.
 Track latency, throughput, memory, promotion behavior, and quality retention together.
 Keep experiment metadata explicit so runs can be compared across hardware and commits.
 """

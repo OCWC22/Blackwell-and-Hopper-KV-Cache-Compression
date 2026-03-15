@@ -1,6 +1,6 @@
 # KVTC Codec
 
-Use this skill when: implementing KVTC calibration, PCA basis computation, compression or decompression pipelines, entropy coding, LMCache serde integration, or evaluating compression ratios for warm and cold KV tiers.
+Use this skill when: implementing KVTC calibration, PCA basis computation, compression or decompression pipelines, entropy coding, TRT-LLM secondary-tier integration, or evaluating compression ratios for warm and cold KV tiers. LMCache serde integration is a follow-up productization path.
 
 ## Core Rules
 
@@ -29,31 +29,39 @@ Use this skill when: implementing KVTC calibration, PCA basis computation, compr
 - Live decode tail is never KVTC-compressed
 - Only compress stable KV: reused prefixes, stale turns, agent scaffolds, cached documents
 
-## LMCache Integration
+## TRT-LLM Secondary-Tier Integration (Primary)
+
+- TRT-LLM supports KV cache offload to host memory
+- KVTC compresses evicted/offloaded KV for higher host-RAM density
+- Keep codec modular: encode(kv_tensor, pca_basis, bit_alloc) → bytes; decode(bytes, pca_basis) → fp8_tensor
+- Decompressed KV is repacked to NVFP4 (or FP8) before restoring to GPU
+
+## LMCache Integration (Follow-Up Path)
 
 - LMCache exposes remote_serde hook (CacheGen today)
 - Replace CacheGen with KVTC codec for higher density
 - LMCache controller APIs support explicit compress and decompress calls
-- Keep codec modular: encode(kv_tensor, pca_basis, bit_alloc) → bytes; decode(bytes, pca_basis) → fp8_tensor
+- This is the follow-up productization path, not the hackathon primary
 
 ## Productionization Path
 
 ### Goal
 
-Productionize KVTC as the LMCache `remote_serde` codec for cold-tier KV compression. This enables:
+Productionize KVTC as the compression codec on the TRT-LLM secondary offload tier. LMCache `remote_serde` integration is a follow-up. This enables:
 - More concurrent users: compressed cold tier uses less host RAM → more prefixes cached → more reuse
 - Longer context: compressed KV takes less space → larger effective context at same memory budget
 - Energy efficiency: less data movement between GPU and host → better tokens/joule
 
-### Integration point
+### Integration point (Primary)
 
-LMCache exposes `remote_serde` hook (CacheGen today). Replace CacheGen with KVTC codec for higher density.
+TRT-LLM KV offload path. Compress evicted KV before writing to host RAM.
 
 ### Integration sequence
 
-1. **Raw host RAM first** — validate LMCache cold-tier reuse without compression
-2. **KVTC-compressed host RAM** — add KVTC codec to LMCache serde, measure compression/decompression latency
+1. **Raw host RAM first** — validate TRT-LLM KV offload without compression
+2. **KVTC-compressed host RAM** — add KVTC codec to offload path, measure compression/decompression latency
 3. **KVTC-compressed disk/remote** — extend to persistent storage if host RAM is insufficient
+4. **LMCache serde (follow-up)** — replace CacheGen with KVTC in LMCache for vLLM compatibility path
 
 ### Compression targets
 
@@ -80,7 +88,7 @@ Decompression + repack cost is paid once on reuse, not every token.
 ## Things To Avoid
 
 - Using KVTC as hot-path format before proving promotion latency is acceptable
-- Conflating KVTC paper results with LMCache or vLLM behavior without measuring
+- Conflating KVTC paper results with TRT-LLM, LMCache, or vLLM behavior without measuring
 - Compressing every token including live decode tail
 - Redoing PCA calibration when only changing compression ratio
 - Assuming post-RoPE compression matches paper quality without validating
