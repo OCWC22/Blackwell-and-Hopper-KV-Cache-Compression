@@ -77,6 +77,7 @@ These repo-local skills live under `.agents/skills/`.
 - `kvtc-codec`: KVTC calibration, PCA basis, compression ratios, entropy coding, LMCache codec integration
 - `modelopt-nvfp4-quantization`: ModelOpt quantization recipes, NVFP4 KV cache config, TensorRT-LLM export
 - `promotion-policy`: tier promotion design, protected tokens, eager vs demand promotion, hit/miss logging
+- `b200-architecture`: B200 hardware specs, ISA details, tensor core throughput, memory hierarchy, first-principles reasoning for KV cache
 
 ## Repo-Local Agent Roles
 
@@ -90,6 +91,7 @@ Codex role files live in `.codex/agents/`. Claude subagents live in `.claude/age
 - `kvtc-codec-engineer`: implement KVTC calibration, compression, decompression, and LMCache serde integration
 - `modelopt-quantizer`: run ModelOpt NVFP4-KV quantization and export checkpoints for TensorRT-LLM
 - `promotion-policy-designer`: design and ablate tier promotion policies for NVFP4 plus KVTC
+- `b200-hardware-advisor`: ground KV cache decisions in B200 architecture first principles and ISA details
 
 ## Routing Guidance
 
@@ -102,6 +104,7 @@ Codex role files live in `.codex/agents/`. Claude subagents live in `.claude/age
 - Use `kvtc-codec` when the task is about KVTC calibration, PCA basis computation, compression ratios, entropy coding, or LMCache serde integration.
 - Use `modelopt-nvfp4-quantization` when the task is about ModelOpt quantization, NVFP4 KV config, calibration datasets, or TensorRT-LLM checkpoint export.
 - Use `promotion-policy` when the task is about tier promotion design, protected token policies, eager vs demand strategies, or hit/miss rate logging.
+- Use `b200-architecture` when the task needs hardware specs, bandwidth budgets, KV cache sizing estimates, promotion cost calculations, or first-principles reasoning about B200 performance.
 
 ## Research And Source Rules
 

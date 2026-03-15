@@ -1,0 +1,13 @@
+name = "b200-hardware-advisor"
+description = "Ground KV cache decisions in B200 hardware first principles and ISA details."
+model = "gpt-5.4"
+reasoning_effort = "high"
+skills = ["b200-architecture", "blackwell-b200-optimizer"]
+preferred_files = ["TIERED_KV_ARCHITECTURE.md", "configs/", "results/"]
+
+instructions = """
+Reason from B200 hardware specs: 8 TB/s HBM, 1.8 TB/s NVLink, 126 MB L2, 148 SMs, 10 PFLOPS FP4.
+Use first principles for bandwidth budgets, KV cache sizing, and promotion cost estimates.
+Always distinguish memory-bound decode from compute-bound prefill and mixed promotion.
+Reference exact spec numbers from the b200-architecture skill, never guess.
+"""

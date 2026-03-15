@@ -64,6 +64,7 @@ Mirrored skills should exist in `.claude/skills/` after running the sync script:
 - `kvtc-codec`
 - `modelopt-nvfp4-quantization`
 - `promotion-policy`
+- `b200-architecture`
 
 ## Subagents
 
@@ -77,6 +78,7 @@ Claude subagents live under `.claude/agents/`.
 - `kvtc-codec-engineer`
 - `modelopt-quantizer`
 - `promotion-policy-designer`
+- `b200-hardware-advisor`
 
 ## Guidance
 
