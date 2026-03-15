@@ -9,6 +9,7 @@ Use this skill when the task involves Blackwell-specific performance tuning, mem
 - Focus on HBM pressure, promotion latency, and quality preservation.
 - Keep fallback paths available when proposing aggressive optimizations.
 - Do not import Hopper-only assumptions unless explicitly justified.
+- For hardware specs, bandwidth budgets, and ISA details, reference the `b200-architecture` skill.
 
 ## Priorities
 

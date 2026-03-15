@@ -1,0 +1,14 @@
+name = "modelopt-quantizer"
+description = "Run ModelOpt NVFP4-KV quantization and export checkpoints for TensorRT-LLM."
+model = "gpt-5.4"
+reasoning_effort = "high"
+skills = ["modelopt-nvfp4-quantization", "blackwell-b200-optimizer"]
+preferred_files = ["src/", "scripts/", "configs/"]
+
+instructions = """
+Use FP8_DEFAULT_CFG plus NVFP4_KV_CFG combined quantization recipe.
+Keep calibration datasets representative of target workloads.
+Export to TensorRT-LLM as primary path, vLLM ModelOpt as secondary.
+Validate accuracy on small benchmark subset before full sweep.
+Read TIERED_KV_ARCHITECTURE.md before starting.
+"""

@@ -38,11 +38,23 @@ If the runtime cannot defend itself against `FP8` or native `NVFP4`, it is not r
 - The interesting question is not "can we compress KV?" The interesting question is "can we reduce HBM pressure without giving the latency back during promotion?"
 - If a proposal only improves storage ratio but regresses `p95` decode latency, it loses.
 
+## Tiered Architecture
+
+We are not choosing between KVTC and NVFP4. We are building a two-tier system:
+
+- **Tier 0 (GPU HBM):** NVFP4 active KV — Blackwell-native, decode consumes from here
+- **Tier 1 (host/SSD/remote):** KVTC bitstream — warm/cold reusable KV at 20×+ compression
+- **Promotion:** KVTC decode → FP8 staging → NVFP4 repack → active blocks (cost paid once on reuse)
+- **Protection:** 4 attention sink tokens + 128 recent tokens always uncompressed
+
+See `TIERED_KV_ARCHITECTURE.md` for full specification including ModelOpt recipe, KVTC calibration workflow, promotion policies, and success criteria.
+
 ## Source Of Truth Files
 
 Read these first:
 
 - `README.md`
+- `TIERED_KV_ARCHITECTURE.md`
 - `blackwell_kv_hackathon_context.md`
 - `PROMPT_BLACKWELL_NVFP4_KVTC.md`
 - `BLACKWELL_24H_PRD.md`
@@ -62,6 +74,12 @@ These repo-local skills live under `.agents/skills/`.
 - `nvfp4-kvtc-runtime`: hot-tier `NVFP4`, warm-tier `KVTC`, and promotion-path runtime design
 - `latency-quality-eval`: decode latency, throughput, memory, and quality retention evaluation
 - `nsys-ncu-profiler`: Nsight Systems and Nsight Compute profiling workflow
+- `kvtc-codec`: KVTC calibration, PCA basis, compression ratios, entropy coding, LMCache codec integration
+- `modelopt-nvfp4-quantization`: ModelOpt quantization recipes, NVFP4 KV cache config, TensorRT-LLM export
+- `promotion-policy`: tier promotion design, protected tokens, eager vs demand promotion, hit/miss logging
+- `b200-architecture`: B200 hardware specs, ISA details, tensor core throughput, memory hierarchy, first-principles reasoning for KV cache
+- `nvfp4-format-reference`: E2M1 bit layout, quantization and dequantization formulas, microscaling math, NVFP4 vs MXFP4 comparison, error analysis, limitations
+- `kvtc-algorithm-reference`: PCA/SVD calibration procedure, DP bit allocation algorithm, entropy coding, protected token ablation, quality results, paper limitations
 
 ## Repo-Local Agent Roles
 
@@ -72,6 +90,10 @@ Codex role files live in `.codex/agents/`. Claude subagents live in `.claude/age
 - `kv-cache-researcher`: shape experiment plans, metrics, and ablations
 - `blackwell-runtime-optimizer`: guide the `NVFP4 + KVTC` runtime work
 - `eval-guard`: keep latency and quality evaluation honest
+- `kvtc-codec-engineer`: implement KVTC calibration, compression, decompression, and LMCache serde integration
+- `modelopt-quantizer`: run ModelOpt NVFP4-KV quantization and export checkpoints for TensorRT-LLM
+- `promotion-policy-designer`: design and ablate tier promotion policies for NVFP4 plus KVTC
+- `b200-hardware-advisor`: ground KV cache decisions in B200 architecture first principles and ISA details
 
 ## Routing Guidance
 
@@ -81,6 +103,12 @@ Codex role files live in `.codex/agents/`. Claude subagents live in `.claude/age
 - Use `nvfp4-kvtc-runtime` when the task is about hot-tier `NVFP4`, `KVTC`, promotion policy, or tiering decisions.
 - Use `latency-quality-eval` when the task is about benchmarking, quality retention, seeds, or result schema.
 - Use `nsys-ncu-profiler` when the task is about tracing kernels, promotion overhead, or memory traffic.
+- Use `kvtc-codec` when the task is about KVTC calibration, PCA basis computation, compression ratios, entropy coding, or LMCache serde integration.
+- Use `modelopt-nvfp4-quantization` when the task is about ModelOpt quantization, NVFP4 KV config, calibration datasets, or TensorRT-LLM checkpoint export.
+- Use `promotion-policy` when the task is about tier promotion design, protected token policies, eager vs demand strategies, or hit/miss rate logging.
+- Use `b200-architecture` when the task needs hardware specs, bandwidth budgets, KV cache sizing estimates, promotion cost calculations, or first-principles reasoning about B200 performance.
+- Use `nvfp4-format-reference` when the task needs E2M1 representable values, quantization or dequantization formulas, microscaling math, NVFP4 vs MXFP4 first-principles comparison, or error analysis.
+- Use `kvtc-algorithm-reference` when the task needs PCA calibration details, DP bit allocation algorithm math, compression ratio analysis, quality benchmarks from the paper, or understanding KVTC limitations.
 
 ## Research And Source Rules
 
