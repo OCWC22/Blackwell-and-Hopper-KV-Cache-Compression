@@ -1,6 +1,6 @@
 # kv-cache-research
 
-Use this skill when the task is about Blackwell experiment design, benchmark structure, ablations, or interpreting memory-versus-latency tradeoffs for the NVFP4 + KVTC KV-cache runtime.
+Use this skill when the task is about Blackwell experiment design, benchmark structure, ablations, or interpreting memory-versus-latency tradeoffs for the vLLM + LMCache tiered KV runtime.
 
 ## Blackwell Benchmark Ladder
 
@@ -8,10 +8,9 @@ Always compare aligned baselines in this order:
 
 1. `BF16` or default KV baseline
 2. `FP8` KV baseline
-3. native `NVFP4` KV baseline
-4. optional `LMCache` or raw host-path offload baseline
-5. `NVFP4 + KVTC` tiering path
-6. promotion and protection ablations
+3. `FP8 + LMCache` cold/warm reusable KV path
+4. optional `NVFP4` Blackwell enhancement (if runtime support is verified)
+5. promotion and protection ablations
 
 ## Required Metrics (Every Run)
 
@@ -23,14 +22,14 @@ Always compare aligned baselines in this order:
 | throughput | tokens per second |
 | HBM footprint | peak GPU memory |
 | cache-hit rate | prefix cache hit percentage |
-| promotion latency | time to promote KVTC → NVFP4 (when applicable) |
+| promotion latency | time to restore cold KV → hot tier (when applicable) |
 | accuracy delta | quality vs best higher-precision baseline |
 
 ## Evaluation Matrix (from PRD)
 
 - Models: one Llama-family model, one Qwen-family model if time allows
 - Contexts: `8k`, `32k`, `64k`
-- Modes: `BF16`, `FP8`, `NVFP4`, `NVFP4 + KVTC`
+- Modes: `BF16`, `FP8`, `FP8 + LMCache`, optional `NVFP4`
 - Ablations: recent-window protection, sink-token protection, eager vs demand promotion
 
 ## Research Frame

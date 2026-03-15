@@ -25,9 +25,9 @@ The real work happens in one of two subdirectories:
 
 ### Blackwell
 
-- native `NVFP4` hot KV
-- `KVTC` warm or cold tier
-- promotion latency, memory footprint, and quality are the key metrics
+- vLLM FP8 KV cache as stable hot tier, NVFP4 as optional Blackwell enhancement
+- LMCache cold/warm reusable KV layer, KVTC as cold-tier codec candidate
+- serving economics (sessions, HBM, TTFT), latency, and quality are the key metrics
 
 ### Hopper
 

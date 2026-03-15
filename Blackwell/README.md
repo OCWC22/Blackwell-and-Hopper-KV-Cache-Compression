@@ -2,52 +2,52 @@
 
 This directory is the hackathon execution lane.
 
-The thesis is specific:
+This repo validates that on Blackwell/B200, a hot/cold KV lifecycle can improve serving economics for reuse-heavy long-context inference. The hot decode path uses the fastest practical supported KV representation in the serving runtime, and the cold reusable tier stores stale prefixes for later restore. The metric of success is not compression ratio alone, but lower HBM pressure, more concurrent sessions, better TTFT under reuse, or longer effective context.
 
-1. keep hot or active KV in native `NVFP4`
-2. move stale, reusable, or oversized KV into a `KVTC` warm or cold tier
-3. optimize the promotion path from `KVTC` back into `NVFP4`
-4. preserve quality while reducing HBM pressure and keeping decode latency low
+The architecture:
 
-We are not trying to replace `vLLM` or `LMCache`.
+1. **Hot tier:** vLLM FP8 KV cache (stable documented path), with optional NVFP4 Blackwell enhancement if runtime support is verified
+2. **Cold / reusable tier:** LMCache-managed storage (host RAM first), with optional KVTC compression candidate
+3. **Promotion path:** restore cold KV to hot tier only on reuse
+4. **Goal:** improve serving economics via KV reuse and lifecycle management
 
-- `vLLM` remains the active serving engine and baseline quantized-KV stack
-- `LMCache` remains the baseline for offload and storage lifecycle
-- our wedge is the Blackwell-native KV runtime and policy layer that decides what stays resident, what gets transform-coded, and when promotion happens
+We are not replacing `vLLM` or `LMCache` — they are the runtime and the reuse layer respectively.
 
 ## 24-Hour Validation Ladder
 
 Run the work in this order:
 
-1. clean `BF16` or default KV baseline
-2. clean `FP8` KV baseline
-3. clean native `NVFP4` KV baseline
-4. optional `LMCache` or raw host-path offload baseline
-5. `NVFP4` hot tier plus `KVTC` warm or cold tier
-6. promotion-policy ablations:
-   - eager promotion
-   - demand fetch
-   - protected recent window
-   - protected sink or pivot tokens
+1. vLLM BF16 baseline
+2. vLLM FP8 KV baseline
+3. vLLM + LMCache cold-tier reuse
+4. one promotion / reuse-policy ablation (demand vs eager)
+5. one-node run only after single-GPU success
+
+Do not block on undocumented NVFP4 hot-KV assumptions in vLLM.
 
 If we cannot beat or match the practical baselines on latency and quality, there is no reason to keep going.
 
 ## Why Blackwell First
 
-This is the highest-leverage path for the weekend because the hardware already gives us the primitive we need:
+This is the highest-leverage path for the weekend because:
 
-- Blackwell natively supports `NVFP4`
-- NVIDIA positions `NVFP4` as a practical low-precision path for accurate inference
-- NVIDIA also documents Blackwell KV-cache optimizations for longer context windows and faster reuse behavior
+- Blackwell/B200 has the HBM bandwidth and capacity to make KV reuse economically interesting
+- vLLM FP8 KV cache is a stable, documented hot-tier path
+- LMCache integrates with vLLM and supports KV lookup/inject/offload/sharing
+- NVFP4 is a Blackwell-native format that could provide additional hot-tier efficiency if runtime support is verified
 
-That means the weekend work can focus on policy, tiering, promotion, and profiling instead of pretending Hopper has native `NVFP4`.
+The weekend work focuses on proving the vLLM + LMCache tiered lifecycle, not on undocumented NVFP4 assumptions.
 
 ## What Success Looks Like
 
-- native `NVFP4` baseline runs cleanly
-- the repo can benchmark `BF16`, `FP8`, and `NVFP4` on the same model and prompt set
-- `KVTC` is integrated or at least scaffolded as a warm or cold tier with a clear promotion story
-- results capture `p50/p95` decode latency, throughput, HBM footprint, and quality deltas
+One defendable sentence:
+
+> On the same B200 hardware, our Blackwell-first vLLM + LMCache tiered KV setup served more reuse-heavy long-context traffic by reducing repeated prefill work and/or lowering peak KV memory pressure, while keeping latency and quality within acceptable bounds.
+
+Concretely:
+- vLLM BF16 and FP8 baselines run cleanly
+- vLLM + LMCache cold-tier reuse shows measurable TTFT improvement or HBM reduction
+- results capture p50/p95 decode latency, throughput, HBM footprint, cache hit rate, and quality deltas
 - the repo is ready for a one-shot agent handoff to Codex or Claude Code
 
 ## AI Harness
@@ -124,11 +124,11 @@ src/                                   Runtime code
 ## Ground Rules
 
 - Blackwell is the primary hardware target here.
-- `NVFP4` is the hot active-KV format.
-- `KVTC` should be treated as a warm or cold tier unless the hot-path latency is proven acceptable.
+- FP8 is the stable hot active-KV format in vLLM. NVFP4 is a Blackwell enhancement if verified.
+- `LMCache` is the cold/warm reusable KV layer. `KVTC` is a cold-tier codec candidate.
 - Do not run GPU workloads on login nodes.
 - Prefer official docs and upstream repos when the latest behavior matters.
-- Optimize for latency plus quality, not for compression ratio in isolation.
+- Optimize for serving economics (sessions, HBM, TTFT), not for compression ratio in isolation.
 
 ## Primary Sources
 

@@ -9,7 +9,7 @@ This repo contains two separate harnesses:
 
 Before editing anything substantial, decide which track the task belongs to.
 
-- If the task is about `NVFP4`, Blackwell-native behavior, weekend validation, or a demo, work in `Blackwell/`.
+- If the task is about Blackwell/B200, vLLM + LMCache tiered KV, weekend validation, or a demo, work in `Blackwell/`.
 - If the task is about `H100`, `H200`, FP4-like emulation, direct FP8 reconstruction, or longer-term research, work in `Hopper/`.
 
 Do not casually mix the two tracks in the same edit set.
@@ -35,8 +35,8 @@ Do not casually mix the two tracks in the same edit set.
 ### Blackwell
 
 - prove something useful in 24 hours
-- use native `NVFP4` where the hardware supports it
-- treat `KVTC` as a warm or cold tier unless hot-path latency proves otherwise
+- vLLM FP8 KV cache as stable hot tier, NVFP4 as optional Blackwell enhancement if verified
+- LMCache as cold/warm reusable KV layer, KVTC as cold-tier codec candidate
 - benchmark against real baselines, not imagined ones
 
 ### Hopper

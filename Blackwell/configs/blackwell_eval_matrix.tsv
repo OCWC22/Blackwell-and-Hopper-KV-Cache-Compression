@@ -1,9 +1,9 @@
 variant	model	context_length	batch_size	workload	notes
-bf16	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	baseline-ceiling
-fp8	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	first-low-precision
-nvfp4	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	blackwell-native-if-supported
-tiered_demand	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	tiered-demand-promotion
-tiered_eager	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	tiered-eager-promotion
-bf16	Qwen/Qwen3-30B-A3B	32768	1	repeated_prefix	long-context-baseline
-fp8	Qwen/Qwen3-30B-A3B	32768	1	repeated_prefix	long-context-fp8
-tiered_demand	Qwen/Qwen3-30B-A3B	32768	1	repeated_prefix	long-context-tiered
+bf16_default	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	baseline-ceiling
+fp8_kv	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	stable-hot-tier
+fp8_kv+lmcache	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	cold-tier-reuse
+tiered_demand	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	demand-promotion-policy
+tiered_eager	Qwen/Qwen3-30B-A3B	8192	1	repeated_prefix	eager-promotion-policy
+bf16_default	Qwen/Qwen3-30B-A3B	32768	1	repeated_prefix	long-context-baseline
+fp8_kv	Qwen/Qwen3-30B-A3B	32768	1	repeated_prefix	long-context-fp8
+fp8_kv+lmcache	Qwen/Qwen3-30B-A3B	32768	1	repeated_prefix	long-context-cold-tier-reuse

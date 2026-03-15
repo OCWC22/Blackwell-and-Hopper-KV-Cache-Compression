@@ -8,17 +8,18 @@ Treat this as the Blackwell hackathon execution repo.
 
 Run this ladder in order:
 
-1. `BF16` or default KV baseline
-2. `FP8` KV baseline
-3. native `NVFP4` KV baseline
-4. optional `LMCache` or raw host-path baseline
-5. `NVFP4 + KVTC` tiering follow-up
+1. vLLM BF16 baseline
+2. vLLM FP8 KV baseline
+3. vLLM + LMCache cold-tier reuse
+4. one promotion / reuse-policy ablation
+5. one-node run only after single-GPU success
 
 ## Core Constraints
 
 - Blackwell is the real target.
-- The hot active-KV format depends on stack support (NVFP4 if verified, FP8 as fallback).
-- `KVTC` is a warm or cold tier unless a hot-path use proves acceptable.
+- vLLM FP8 KV cache is the stable documented hot-tier path.
+- NVFP4 is a Blackwell-aware optional enhancement — only use if runtime support is explicitly verified.
+- `LMCache` is the cold/warm reusable KV layer. `KVTC` is a cold-tier codec candidate.
 - Keep long-running work Slurm-safe and reproducible.
 - Save benchmark artifacts in `results/` and batch logs in `logs/`.
 - Optimize for serving efficiency first (sessions, HBM, TTFT), then memory savings.
@@ -54,17 +55,27 @@ The probe result is written to `results/env_probe.json` and must exist before an
 
 ## Blackwell KV Runtime: Core Thesis
 
-We are not choosing between KVTC and NVFP4. We are building:
+This repo validates that on Blackwell/B200, a hot/cold KV lifecycle can improve serving economics for reuse-heavy long-context inference. The hot decode path uses the fastest practical supported KV representation in the serving runtime, and the cold reusable tier stores stale prefixes for later restore. The metric of success is not compression ratio alone, but lower HBM pressure, more concurrent sessions, better TTFT under reuse, or longer effective context.
 
-- **Tier 0** hot KV in NVFP4 on Blackwell (GPU HBM, active decode)
-- **Tier 1** warm/cold reusable KV in KVTC format (host RAM / SSD / remote)
-- **Promotion path:** KVTC decode → FP8 staging → NVFP4 repack → active cache
+- **Tier 0 — Hot KV:** vLLM FP8 KV cache (stable documented path)
+- **Tier 0b — Experimental Blackwell enhancement:** NVFP4-aware hot path only if runtime support is explicitly verified
+- **Tier 1 — Cold / reusable KV:** LMCache-managed storage, host RAM first, optional compression via KVTC candidate path
 
-Success criteria: NVFP4 + KVTC beats raw offload or plain NVFP4 on HBM efficiency, TTFT/hit-rate, or concurrency — without breaking quality.
+**Goal:** Improve serving economics via KV reuse and better lifecycle management, not compression ratio alone.
 
-Rules: do not replace the inference engine, do not use KVTC as always-hot representation first, keep sink tokens and recent window protected, treat pre-RoPE vs post-RoPE as explicit research question, pay decode/reconstruction cost on promotion not every token.
+Rules: do not replace the inference engine, do not block on undocumented NVFP4 hot-KV assumptions in vLLM, keep sink tokens and recent window protected, treat pre-RoPE vs post-RoPE as explicit research question, pay decode/reconstruction cost on promotion not every token.
 
 See `TIERED_KV_ARCHITECTURE.md` for the full architectural specification.
+
+## Execution Priority
+
+1. vLLM baseline
+2. vLLM FP8 KV baseline
+3. vLLM + LMCache cold-tier reuse
+4. one promotion / reuse-policy ablation
+5. one-node run only after single-GPU success
+
+Do not block on undocumented NVFP4 hot-KV assumptions in vLLM.
 
 ## What To Read First
 

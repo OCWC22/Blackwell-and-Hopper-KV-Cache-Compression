@@ -71,12 +71,12 @@ These are things this repo proposes but has **not yet measured**. They are testa
 
 ### Primary hypothesis
 
-A tiered KV runtime can improve real inference serving economics on B200 by keeping hot active KV on GPU and storing reusable cold/warm KV in a cheaper tier, then restoring it only when reuse happens.
+On Blackwell/B200, a hot/cold KV lifecycle can improve serving economics for reuse-heavy long-context inference. The hot decode path uses the fastest practical supported KV representation in the serving runtime (vLLM FP8 KV cache as stable path), and the cold reusable tier (LMCache) stores stale prefixes for later restore.
 
 ### Specific claims to test
 
-1. **Hot/cold lifecycle improves serving economics** — the same GPU can serve more concurrent sessions, longer context, or better TTFT by tiering KV rather than keeping everything in HBM
-2. **Promotion path is viable** — KVTC decode → FP8 staging → NVFP4 repack is fast enough that promotion latency is amortized by reuse
+1. **Hot/cold lifecycle improves serving economics** — the same GPU can serve more concurrent sessions, longer context, or better TTFT by tiering KV via vLLM + LMCache rather than keeping everything in HBM
+2. **LMCache reuse path is viable** — restoring cold KV from LMCache to vLLM's hot tier is fast enough that promotion latency is amortized by reuse
 3. **Protection policies preserve quality** — protecting first 4 sink tokens and last 128 recent tokens maintains quality within 1% of baseline
 4. **Demand promotion beats eager promotion** — restoring KV only on cache hit is more efficient than pre-loading all cold KV
 5. **Compressed cold tier beats raw cold tier** — KVTC compression in the cold tier saves enough host memory or bandwidth to be worth the codec overhead
@@ -84,13 +84,21 @@ A tiered KV runtime can improve real inference serving economics on B200 by keep
 ### Architecture hypothesis
 
 ```
-Tier 0 — Hot Active KV (GPU HBM)
-  Format: NVFP4 if supported, FP8 as fallback
-  Purpose: active decode, minimal latency
+Tier 0 — Hot KV
+  Stable public runtime path:
+  - vLLM FP8 KV cache
 
-Tier 1 — Warm/Cold Reusable KV (Host RAM first, then disk/remote)
-  Format: raw tensors first, KVTC if codec ready
-  Purpose: reusable prefixes, stale turns, shared prompts
+Tier 0b — Experimental Blackwell enhancement
+  - NVFP4-aware hot path only if runtime support is explicitly verified
+
+Tier 1 — Cold / reusable KV
+  - LMCache-managed storage
+  - host RAM first
+  - optional compression via KVTC candidate path
+
+Goal:
+  Improve serving economics via KV reuse and better lifecycle management,
+  not compression ratio alone.
 
 Promotion Path:
   cold blob → decompress → repack to active format → restore to GPU → decode continues
@@ -162,9 +170,9 @@ Always run in this order. Do not skip steps.
 | Step | Variant | Purpose | Gate |
 |------|---------|---------|------|
 | 1 | BF16 / default KV | Accuracy ceiling, latency/memory floor | Always run |
-| 2 | FP8 KV | First low-precision baseline | Always run |
-| 3 | NVFP4 KV | Native Blackwell hot-tier baseline | Only if support gate passes |
-| 4 | Tiered (hot + host RAM cold) | First cold-tier result | After step 2 or 3 |
+| 2 | FP8 KV | Stable hot-tier baseline | Always run |
+| 3 | FP8 KV + LMCache | First cold-tier reuse result | After step 2 |
+| 4 | NVFP4 KV | Blackwell enhancement baseline | Only if support gate passes |
 | 5 | Tiered + KVTC cold | Compressed cold tier | Only if codec ready |
 
 ### Accuracy benchmarks

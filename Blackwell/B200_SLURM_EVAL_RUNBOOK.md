@@ -13,7 +13,7 @@ Run the ladder in this exact order:
 1. login-node environment verification
 2. single-GPU Blackwell sanity run
 3. one-node baseline sweep
-4. one-node `NVFP4 + KVTC` sweep
+4. one-node `FP8+LMCache` sweep
 5. only then multi-node `B200` runs
 
 That order matches standard Slurm best practice: use `sbatch` for repeatable jobs, keep long work off login nodes, and scale only after the smaller shape is stable. See `[R1]` and `[R2]`.
@@ -113,7 +113,7 @@ Repeat the same harness with:
 - `FP8`
 - `NVFP4`
 
-### Stage 4: one-node `NVFP4 + KVTC`
+### Stage 4: one-node `FP8+LMCache`
 
 Run the first integrated tiering experiment with protection-policy metadata captured.
 

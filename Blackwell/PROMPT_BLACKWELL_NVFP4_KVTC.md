@@ -1,35 +1,36 @@
-# Blackwell NVFP4 + KVTC Hackathon Prompt
+# Blackwell Tiered KV Runtime Hackathon Prompt
 
 You are acting as a senior GPU systems engineer and inference-runtime researcher.
 
 ## Task
 
-Design and validate a Blackwell-native KV-cache runtime for long-context LLM serving.
+Validate that a Blackwell-first vLLM + LMCache tiered KV runtime improves reuse-heavy long-context serving on B200.
 
 ## Goal
 
-Use native `NVFP4` for the hot active-KV path and `KVTC` for a warm or cold reusable-KV tier. The system should minimize decode latency, maximize effective context capacity, and preserve quality.
+Use vLLM with FP8 KV cache as the stable hot-tier path and LMCache as the cold/warm reusable KV layer. The system should minimize decode latency, maximize effective context capacity, and preserve quality. NVFP4 is a Blackwell-aware optional enhancement if runtime support is verified. KVTC is a cold-tier codec candidate for compressing reusable KV.
 
 ## Environment Assumptions
 
-- Blackwell hardware is available.
-- `vLLM` or an equivalent serving engine is available.
-- `LMCache` may be used as a baseline storage or offload layer, but we are not trying to rebuild `LMCache`.
-- Native `NVFP4` support is available.
-- `KVTC` is available as a transform-coding reference for compact storage.
+- Blackwell / B200 hardware is available.
+- `vLLM` is the serving engine with FP8 KV cache as the stable documented hot-tier path.
+- `LMCache` is the cold/warm reusable KV layer for KV lookup/inject/offload/sharing.
+- NVFP4 is a Blackwell-native format — only use as hot-tier enhancement if runtime support is explicitly verified in vLLM.
+- `KVTC` is available as a cold-tier compression candidate, not a hot-tier format.
 
 ## What To Do
 
-1. write the architecture for a dual-tier KV hierarchy:
-   - Tier 0: resident active `NVFP4` KV
-   - Tier 1: `KVTC`-compressed reusable or stale KV
-2. propose the promotion path from `KVTC` back into `NVFP4`
+1. write the architecture for a tiered KV hierarchy:
+   - Tier 0: vLLM FP8 KV cache (stable documented hot-tier path)
+   - Tier 0b: NVFP4-aware hot path (only if runtime support verified)
+   - Tier 1: LMCache-managed cold/reusable KV (host RAM first, optional KVTC compression)
+2. propose the promotion path from LMCache cold tier back to vLLM hot tier
 3. define which tokens or windows should remain protected if quality drops
-4. define an experiment matrix versus:
-   - `BF16` or default KV
-   - `FP8` KV
-   - native `NVFP4` KV
-   - `LMCache` or raw offload baseline if relevant
+4. define an experiment matrix:
+   - `BF16` baseline
+   - `FP8` KV baseline
+   - `FP8` KV + LMCache cold-tier reuse
+   - optional: Blackwell NVFP4 path if runtime support verified
 5. state exactly how to measure:
    - `p50/p95` decode latency
    - throughput
@@ -50,9 +51,10 @@ Use native `NVFP4` for the hot active-KV path and `KVTC` for a warm or cold reus
 ## Hard Rules
 
 - Do not recommend replacing the inference engine.
-- Do not use `KVTC` as the hot format by default unless latency proves acceptable.
-- Optimize for latency and quality first, then storage ratio.
-- Be explicit about what is Blackwell-specific.
+- Do not claim NVFP4 hot-KV support in vLLM unless explicitly verified at runtime.
+- Do not use `KVTC` as a hot format — it is a cold-tier codec candidate.
+- Optimize for serving economics (sessions, HBM, TTFT), not compression ratio alone.
+- Be explicit about what is Blackwell-specific vs what works on any GPU.
 
 ## Key References
 

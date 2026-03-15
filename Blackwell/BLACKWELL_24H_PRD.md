@@ -2,11 +2,18 @@
 
 ## Objective
 
-By end of day, produce one credible Blackwell/B200 serving result:
+Show that on B200 / Blackwell, a vLLM + LMCache compatible hot/cold KV lifecycle improves reuse-heavy long-context serving by achieving at least one of:
+- >=20% lower peak HBM
+- materially better TTFT on repeated-prefix traffic
+- >=25% more concurrent sessions at fixed p95 target
+- materially longer effective context
 
-**Show that a tiered KV runtime improves effective serving capacity on a reuse-heavy long-context workload.**
+while keeping:
+- p95 TPOT regression <= 10%
+- p99 TPOT regression <= 15%
+- quality delta <= 1%
 
-This repo is testing a KV-lifecycle controller around existing serving stacks, not building a new engine.
+This repo is testing a KV-lifecycle controller around existing serving stacks (vLLM, LMCache), not building a new engine.
 
 ## Primary KPI
 
@@ -32,11 +39,11 @@ These are hackathon-grade thresholds, not production guarantees.
 ## Non-Goals
 
 - Do not build a new inference engine
-- Do not replace vLLM or TRT-LLM or LMCache
-- Do not treat KVTC as a guaranteed hot-path representation
+- Do not replace vLLM or LMCache
+- Do not treat KVTC as a hot-path representation — it is a cold-tier codec candidate
 - Do not run multi-node jobs before the single-GPU path works
-- Do not claim NVFP4 hot-KV support unless verified on the chosen stack
-- Do not couple KVTC integration risk with tiering risk on day zero
+- Do not claim NVFP4 hot-KV support in vLLM unless explicitly verified at runtime
+- Do not block on NVFP4 or KVTC integration — the core experiment is vLLM + LMCache reuse
 
 ## Deliverables
 
@@ -85,23 +92,24 @@ Workload: `repeated_prefix`
 |---------|---------|------|
 | bf16 | 8192 | 1 |
 | fp8 | 8192 | 1 |
-| nvfp4 | 8192 | 1 (if support gate passes) |
+| fp8 + lmcache | 8192 | 1 |
 | bf16 | 32768 | 1 |
 | fp8 | 32768 | 1 |
+| fp8 + lmcache | 32768 | 1 |
 
 Output: `results/baseline_{variant}_{context}.json`
 
-### WS3: First Tiered Experiment (75 min)
+### WS3: First Tiered Experiment — vLLM + LMCache (75 min)
 
-Run `scripts/run_tiered_experiment.py` with:
-- Hot tier: GPU KV (fp8 or nvfp4 depending on support gate)
-- Cold tier: host RAM
+Run vLLM with LMCache cold-tier reuse enabled:
+- Hot tier: vLLM FP8 KV cache on GPU
+- Cold tier: LMCache-managed host RAM
 - Promotion policy: demand (default)
 - Protection: 4 sink tokens, 128 recent tokens
 
 Must record: offload latency, restore/promotion latency, cold store size, cache hit rate, TTFT cold vs warm.
 
-This step validates the serving economics hypothesis. The question is whether your policy improves outcomes, not whether offloading exists (LMCache and TRT-LLM already show that).
+This step validates the serving economics hypothesis. The question is whether KV reuse via LMCache improves TTFT and concurrency, not whether offloading exists.
 
 ### WS4: Policy Ablation (45 min)
 
@@ -131,14 +139,18 @@ Minimum viable matrix:
 
 | Variant | Model | Context | Workload | Notes |
 |---------|-------|---------|----------|-------|
-| bf16 | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | baseline ceiling |
-| fp8 | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | first low-precision |
-| nvfp4 | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | if support gate passes |
-| tiered_demand | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | demand promotion |
-| tiered_eager | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | eager promotion |
-| bf16 | Qwen/Qwen3-30B-A3B | 32768 | repeated_prefix | long-context baseline |
-| fp8 | Qwen/Qwen3-30B-A3B | 32768 | repeated_prefix | long-context fp8 |
-| tiered_demand | Qwen/Qwen3-30B-A3B | 32768 | repeated_prefix | long-context tiered |
+| bf16_default | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | baseline ceiling |
+| fp8_kv | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | stable hot-tier path |
+| fp8_kv + lmcache | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | cold-tier reuse |
+| tiered_demand | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | demand promotion policy |
+| tiered_eager | Qwen/Qwen3-30B-A3B | 8192 | repeated_prefix | eager promotion policy |
+| bf16_default | Qwen/Qwen3-30B-A3B | 32768 | repeated_prefix | long-context baseline |
+| fp8_kv | Qwen/Qwen3-30B-A3B | 32768 | repeated_prefix | long-context fp8 |
+| fp8_kv + lmcache | Qwen/Qwen3-30B-A3B | 32768 | repeated_prefix | long-context cold-tier reuse |
+
+Concurrency / request-rate sweep (stop when p95 becomes unacceptable):
+- `request_rate`: 1, 2, 5, 10, 20
+- `max_concurrency`: 1, 2, 4, 8, 16, 32
 
 ## Kill Criteria
 
