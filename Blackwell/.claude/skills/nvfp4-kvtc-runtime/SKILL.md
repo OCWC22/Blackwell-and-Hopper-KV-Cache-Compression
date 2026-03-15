@@ -22,3 +22,10 @@ Use this skill when implementing or reviewing the Blackwell-native `NVFP4 + KVTC
 - claiming `KVTC` is a hot-path win before measuring latency
 - mixing `LMCache` baseline claims with `KVTC` paper claims
 - hiding policy assumptions inside unrelated code
+
+## Sources
+
+- `TIERED_KV_ARCHITECTURE.md`: full tiered architecture spec including promotion path and protection policies
+- NVIDIA NVFP4 overview: <https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/>
+- NVIDIA NVFP4 KV cache blog: <https://developer.nvidia.com/blog/optimizing-inference-for-long-context-and-large-batch-sizes-with-nvfp4-kv-cache>
+- KVTC paper (ICLR 2026): <https://openreview.net/forum?id=tMiBQXQ0Cm>

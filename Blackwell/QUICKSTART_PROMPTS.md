@@ -5,7 +5,7 @@ Use these prompts with either Codex or Claude Code. They are written for a skept
 ## 1. Blackwell Repo Recon
 
 ```text
-Work inside /Users/chen/Documents/GitHub/Hopper-KV-Cache-Compression/Blackwell.
+Work inside this repo's Blackwell/ directory.
 Read README.md, AGENTS.md, CLAUDE.md, QUICKSTART_PROMPTS.md, blackwell_kv_hackathon_context.md, PROMPT_BLACKWELL_NVFP4_KVTC.md, and scripts/.
 
 Then answer three questions with concrete file edits:

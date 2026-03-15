@@ -53,3 +53,14 @@ Use native `NVFP4` for the hot active-KV path and `KVTC` for a warm or cold reus
 - Do not use `KVTC` as the hot format by default unless latency proves acceptable.
 - Optimize for latency and quality first, then storage ratio.
 - Be explicit about what is Blackwell-specific.
+
+## Key References
+
+- NVIDIA NVFP4 overview: <https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/>
+- NVIDIA NVFP4 KV cache blog: <https://developer.nvidia.com/blog/optimizing-inference-for-long-context-and-large-batch-sizes-with-nvfp4-kv-cache>
+- NVIDIA TRT-LLM KV cache early reuse: <https://developer.nvidia.com/blog/5x-faster-time-to-first-token-with-nvidia-tensorrt-llm-kv-cache-early-reuse/>
+- KVTC paper (ICLR 2026): <https://openreview.net/forum?id=tMiBQXQ0Cm>
+- vLLM quantized KV cache: <https://docs.vllm.ai/usage/quantization/quantized_kvcache/>
+- LMCache docs: <https://docs.lmcache.ai/>
+- ModelOpt PTQ examples: <https://github.com/NVIDIA/TensorRT-Model-Optimizer/blob/main/examples/llm_ptq/README.md>
+- TRT-LLM KV cache reuse: <https://nvidia.github.io/TensorRT-LLM/advanced/kv-cache-reuse.html>

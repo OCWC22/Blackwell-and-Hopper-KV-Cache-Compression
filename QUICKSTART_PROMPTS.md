@@ -5,7 +5,7 @@ Use these at the repo root when you want an agent to pick the right track and th
 ## 1. Route Me To The Right Track
 
 ```text
-Work inside /Users/chen/Documents/GitHub/Hopper-KV-Cache-Compression.
+Work inside this repository's root.
 
 Read:
 - README.md
@@ -25,7 +25,7 @@ Make the edits instead of stopping at a recommendation.
 ## 2. Blackwell Hackathon Pass
 
 ```text
-Work inside /Users/chen/Documents/GitHub/Hopper-KV-Cache-Compression/Blackwell.
+Work inside this repository's Blackwell/ directory.
 
 Read:
 - README.md
@@ -43,7 +43,7 @@ Make concrete repo edits and explain exactly how to run them.
 ## 3. Hopper Research Pass
 
 ```text
-Work inside /Users/chen/Documents/GitHub/Hopper-KV-Cache-Compression/Hopper.
+Work inside this repository's Hopper/ directory.
 
 Read:
 - README.md

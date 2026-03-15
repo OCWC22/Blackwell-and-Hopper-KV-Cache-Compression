@@ -193,11 +193,21 @@ We win only if NVFP4 + KVTC beats raw offload or plain NVFP4 on:
 
 ## Sources
 
-- R1: NVIDIA, "Introducing NVFP4 for Efficient and Accurate Low-Precision Inference"
-- R2: NVIDIA, "5x Faster Time to First Token with TensorRT-LLM KV Cache Early Reuse"
-- R3: vLLM quantized KV cache documentation
-- R4: vLLM production-stack KV cache documentation
-- R5: LMCache documentation (https://docs.lmcache.ai/)
-- R6: KVTC, "KV-Cache Compression with Learned Transform Coding" (https://openreview.net/forum?id=tMiBQXQ0Cm)
-- R7: NVIDIA ModelOpt NVFP4-KV quantization documentation
-- R8: TensorRT-LLM KV Cache Connector documentation
+- `[R1]` NVIDIA, "Introducing NVFP4 for Efficient and Accurate Low-Precision Inference"
+  - <https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/>
+- `[R2]` NVIDIA, "5x Faster Time to First Token with TensorRT-LLM KV Cache Early Reuse"
+  - <https://developer.nvidia.com/blog/5x-faster-time-to-first-token-with-nvidia-tensorrt-llm-kv-cache-early-reuse/>
+- `[R3]` vLLM quantized KV cache documentation
+  - <https://docs.vllm.ai/usage/quantization/quantized_kvcache/>
+- `[R4]` vLLM production-stack KV cache documentation
+  - <https://docs.vllm.ai/projects/production-stack/en/latest/user_manual/kv_cache/index.html>
+- `[R5]` LMCache documentation
+  - <https://docs.lmcache.ai/>
+- `[R6]` KVTC, "KV-Cache Compression with Learned Transform Coding" (ICLR 2026)
+  - <https://openreview.net/forum?id=tMiBQXQ0Cm>
+- `[R7]` NVIDIA, "Optimizing Inference for Long Context and Large Batch Sizes with NVFP4 KV Cache"
+  - <https://developer.nvidia.com/blog/optimizing-inference-for-long-context-and-large-batch-sizes-with-nvfp4-kv-cache>
+  - ModelOpt PTQ examples: <https://github.com/NVIDIA/TensorRT-Model-Optimizer/blob/main/examples/llm_ptq/README.md>
+- `[R8]` TensorRT-LLM KV Cache Reuse and KV Cache System
+  - <https://nvidia.github.io/TensorRT-LLM/advanced/kv-cache-reuse.html>
+  - <https://nvidia.github.io/TensorRT-LLM/latest/features/kvcache.html>

@@ -5,7 +5,7 @@ Use these prompts with either Codex or Claude Code. They are written for a resea
 ## 1. Hopper Repo Recon
 
 ```text
-Work inside /Users/chen/Documents/GitHub/Hopper-KV-Cache-Compression/Hopper.
+Work inside this repository's Hopper/ directory.
 Read README.md, AGENTS.md, CLAUDE.md, QUICKSTART_PROMPTS.md, hopper_kv_compression_hackathon_context.md, PROMPT_HOPPER_HFP4_RESEARCH.md, and scripts/.
 
 Then answer three questions with concrete file edits:

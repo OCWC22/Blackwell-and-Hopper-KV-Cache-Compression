@@ -121,3 +121,14 @@ Minimum matrix:
 - `NVFP4 + KVTC` loses materially on `p95` decode latency and does not recover enough memory to matter
 - quality drops clearly versus the `NVFP4` baseline even after basic protection policies
 - the implementation surface is too unstable to hand off cleanly
+
+## References
+
+- `TIERED_KV_ARCHITECTURE.md`: full architectural specification for NVFP4 hot + KVTC warm/cold tiering
+- `blackwell_kv_hackathon_context.md`: execution brief, validation ladder, and source notes
+- NVIDIA NVFP4 overview: <https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/>
+- NVIDIA NVFP4 KV cache blog: <https://developer.nvidia.com/blog/optimizing-inference-for-long-context-and-large-batch-sizes-with-nvfp4-kv-cache>
+- NVIDIA TRT-LLM KV cache early reuse: <https://developer.nvidia.com/blog/5x-faster-time-to-first-token-with-nvidia-tensorrt-llm-kv-cache-early-reuse/>
+- KVTC paper (ICLR 2026): <https://openreview.net/forum?id=tMiBQXQ0Cm>
+- vLLM quantized KV cache: <https://docs.vllm.ai/usage/quantization/quantized_kvcache/>
+- LMCache docs: <https://docs.lmcache.ai/>
