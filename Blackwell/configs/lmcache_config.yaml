@@ -1,0 +1,22 @@
+# LMCache configuration for vLLM CPU KV cache offloading on Blackwell/B200
+#
+# Usage:
+#   LMCACHE_CONFIG_FILE=configs/lmcache_config.yaml vllm serve <model> \
+#     --kv-cache-dtype fp8 \
+#     --kv-transfer-config '{"kv_connector":"LMCacheConnectorV1","kv_role":"kv_both"}'
+#
+# How it works:
+#   vLLM hashes token blocks and passes hashes to LMCache via the KV connector.
+#   LMCache returns a bitmask of available blocks. No coordination needed across instances.
+#   Hierarchical lookup: GPU -> CPU (LMCache) -> remote storage.
+#
+# Environment variable overrides (these take precedence):
+#   LMCACHE_CHUNK_SIZE=256
+#   LMCACHE_LOCAL_CPU=True
+#   LMCACHE_MAX_LOCAL_CPU_SIZE=20.0
+#
+# Docs: https://docs.lmcache.ai/getting_started/quickstart/offload_kv_cache.html
+
+chunk_size: 256
+local_cpu: true
+max_local_cpu_size: 20.0  # GB — adjust per node RAM budget (B200 nodes typically have 1-2 TB)

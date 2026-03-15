@@ -6,15 +6,18 @@ on reuse-heavy long-context workloads by reducing HBM pressure.
 
 Approach:
   1. Run requests with unique prefixes (cold path) — measure baseline TTFT
-  2. Offload KV to host RAM (simulated cold tier)
+  2. Offload KV to host RAM via LMCache (or simulated via prefix caching)
   3. Replay same prefixes (warm path) — measure TTFT with cache reuse
   4. Compare cold vs warm TTFT, measure promotion latency
 
-Primary mechanism: vLLM prefix caching (public API).
-Fallback: LMCache CPU-tier cache if installed.
+Primary mechanism: LMCache CPU offloading via LMCacheConnectorV1 (when --use-lmcache).
+Fallback: vLLM prefix caching only (when --use-lmcache is not set).
+
+Supports NVFP4 hot-tier via --kv-mode nvfp4 (support-gated; falls back to FP8).
 
 Usage:
-    python scripts/run_tiered_experiment.py --promotion-policy demand --requests 10
+    python scripts/run_tiered_experiment.py --use-lmcache --kv-mode fp8 --requests 10
+    python scripts/run_tiered_experiment.py --use-lmcache --kv-mode nvfp4 --requests 10
     python scripts/run_tiered_experiment.py --promotion-policy eager --context-length 32768
 """
 
@@ -39,8 +42,14 @@ def parse_args():
                    help="Context length for prompts")
     p.add_argument("--requests", type=int, default=10,
                    help="Number of inference requests per phase")
-    p.add_argument("--kv-mode", choices=["bf16", "fp8"], default="fp8",
-                   help="Hot-tier KV precision")
+    p.add_argument("--kv-mode", choices=["bf16", "fp8", "nvfp4"], default="fp8",
+                   help="Hot-tier KV precision (nvfp4 is support-gated)")
+    p.add_argument("--use-lmcache", action="store_true",
+                   help="Enable real LMCache CPU offloading via LMCacheConnectorV1")
+    p.add_argument("--lmcache-config", default="configs/lmcache_config.yaml",
+                   help="Path to LMCache config YAML (used with --use-lmcache)")
+    p.add_argument("--lmcache-cpu-size", type=float, default=20.0,
+                   help="Max CPU memory for LMCache in GB")
     p.add_argument("--promotion-policy", choices=["demand", "eager"], default="demand",
                    help="Promotion policy: demand (restore on hit) or eager (pre-restore)")
     p.add_argument("--protected-sink", type=int, default=4,
@@ -98,15 +107,17 @@ def generate_reuse_workload(context_length, num_requests, prefix_ratio=0.8):
 class TieredKVController:
     """Manages hot/cold KV lifecycle around a vLLM engine.
 
-    Uses vLLM prefix caching as the primary mechanism:
-    - Cold path: first request with a prefix (cache miss)
-    - Warm path: repeated request with same prefix (cache hit)
-    - The "offload" is simulated by running a cache-clearing workload between phases
-    - The "restore" is the natural prefix cache hit path
+    Two modes:
+    1. LMCache mode (--use-lmcache): Real CPU offloading via LMCacheConnectorV1.
+       vLLM hashes token blocks, LMCache manages GPU→CPU KV movement.
+       Hierarchical lookup: GPU → CPU (LMCache) → remote.
+    2. Prefix-cache-only mode (default): vLLM built-in prefix caching.
+       Cold/warm distinction comes from natural cache miss/hit behavior.
     """
 
     def __init__(self, model, kv_mode, context_length, tp_size,
-                 promotion_policy, protected_sink, protected_recent):
+                 promotion_policy, protected_sink, protected_recent,
+                 use_lmcache=False, lmcache_config=None, lmcache_cpu_size=20.0):
         try:
             from vllm import LLM, SamplingParams
         except ImportError:
@@ -117,12 +128,35 @@ class TieredKVController:
         self.promotion_policy = promotion_policy
         self.protected_sink = protected_sink
         self.protected_recent = protected_recent
+        self.use_lmcache = use_lmcache
+        self.lmcache_enabled = False
 
-        kv_dtype = "fp8" if kv_mode == "fp8" else "auto"
+        # Map kv_mode to vLLM kv_cache_dtype
+        kv_dtype_map = {
+            "bf16": "auto",
+            "fp8": "fp8",
+            "nvfp4": "nvfp4",
+        }
+        kv_dtype = kv_dtype_map.get(kv_mode, "auto")
         self.kv_mode = kv_mode
+        self.kv_mode_actual = kv_mode
+
+        # Set up LMCache environment if requested
+        if use_lmcache:
+            config_path = lmcache_config or "configs/lmcache_config.yaml"
+            abs_config = os.path.abspath(config_path)
+            if os.path.exists(abs_config):
+                os.environ["LMCACHE_CONFIG_FILE"] = abs_config
+                print(f"LMCache config: {abs_config}")
+            else:
+                print(f"WARNING: LMCache config not found at {abs_config}, using env vars only")
+            os.environ["LMCACHE_LOCAL_CPU"] = "True"
+            os.environ["LMCACHE_MAX_LOCAL_CPU_SIZE"] = str(lmcache_cpu_size)
+            os.environ["LMCACHE_CHUNK_SIZE"] = "256"
+            print(f"LMCache CPU offloading enabled: {lmcache_cpu_size} GB")
 
         print(f"Loading model {model} with kv_cache_dtype={kv_dtype}, "
-              f"prefix_caching=True, tp={tp_size}...")
+              f"prefix_caching=True, tp={tp_size}, lmcache={use_lmcache}...")
 
         llm_kwargs = {
             "model": model,
@@ -133,15 +167,41 @@ class TieredKVController:
             "enable_prefix_caching": True,
         }
 
+        # Add LMCache KV transfer config if enabled
+        if use_lmcache:
+            try:
+                from vllm.config import KVTransferConfig
+                llm_kwargs["kv_transfer_config"] = KVTransferConfig(
+                    kv_connector="LMCacheConnectorV1",
+                    kv_role="kv_both",
+                )
+                self.lmcache_enabled = True
+                print("LMCache connector: LMCacheConnectorV1 (kv_role=kv_both)")
+            except ImportError:
+                print("WARNING: KVTransferConfig not available in this vLLM version. "
+                      "Falling back to prefix-caching only.")
+            except Exception as e:
+                print(f"WARNING: Failed to configure LMCache connector: {e}. "
+                      "Falling back to prefix-caching only.")
+
         try:
             self.llm = LLM(**llm_kwargs)
-        except TypeError as e:
+        except (TypeError, ValueError) as e:
             err = str(e)
-            if "kv_cache_dtype" in err:
+            # Handle NVFP4 fallback
+            if kv_mode == "nvfp4" and ("nvfp4" in err.lower() or "kv_cache_dtype" in err):
+                print(f"WARNING: NVFP4 KV cache not supported. Falling back to FP8.")
+                llm_kwargs["kv_cache_dtype"] = "fp8"
+                self.kv_mode_actual = "fp8_fallback_from_nvfp4"
+            if "kv_cache_dtype" in err and "nvfp4" not in kv_mode:
                 del llm_kwargs["kv_cache_dtype"]
-                self.kv_mode = "bf16_fallback"
+                self.kv_mode_actual = "bf16_fallback"
             if "enable_prefix_caching" in err:
                 del llm_kwargs["enable_prefix_caching"]
+            if "kv_transfer_config" in err:
+                llm_kwargs.pop("kv_transfer_config", None)
+                self.lmcache_enabled = False
+                print("WARNING: kv_transfer_config not supported. LMCache disabled.")
             self.llm = LLM(**llm_kwargs)
 
         try:
@@ -150,7 +210,7 @@ class TieredKVController:
         except Exception:
             self.engine_version = "unknown"
 
-        # Cold store simulation: track what we've "offloaded"
+        # Cold store tracking
         self.cold_store_entries = []
         self.cold_store_size_bytes = 0
 
@@ -314,6 +374,9 @@ def main():
         promotion_policy=args.promotion_policy,
         protected_sink=args.protected_sink,
         protected_recent=args.protected_recent,
+        use_lmcache=args.use_lmcache,
+        lmcache_config=args.lmcache_config,
+        lmcache_cpu_size=args.lmcache_cpu_size,
     )
 
     # Start power sampling
@@ -370,7 +433,8 @@ def main():
 
     result["model"] = {
         "name": args.model,
-        "kv_mode": controller.kv_mode,
+        "kv_mode": controller.kv_mode_actual,
+        "kv_mode_requested": controller.kv_mode,
         "context_length": args.context_length,
     }
 
@@ -384,8 +448,9 @@ def main():
 
     result["tiering"] = {
         "enabled": True,
-        "hot_tier_format": controller.kv_mode,
+        "hot_tier_format": controller.kv_mode_actual,
         "cold_tier_format": args.cold_tier_backend,
+        "lmcache_enabled": controller.lmcache_enabled,
         "promotion_policy": args.promotion_policy,
         "recent_window_tokens": args.protected_recent,
         "sink_tokens_protected": args.protected_sink,
@@ -420,14 +485,30 @@ def main():
         "quality_delta_vs_best_baseline": None,
     }
 
+    limitations = [
+        "TTFT estimates use wall-clock fractions, not per-token streaming",
+        "Cold store size is estimated from model architecture, not measured",
+        "Prefix caching behavior depends on vLLM version and configuration",
+    ]
+    if controller.kv_mode_actual != controller.kv_mode:
+        limitations.append(
+            f"Requested {controller.kv_mode} but used {controller.kv_mode_actual}"
+        )
+    if args.use_lmcache and not controller.lmcache_enabled:
+        limitations.append("LMCache was requested but could not be enabled")
+
     result["notes"] = {
-        "support_gate_result": controller.kv_mode,
-        "known_limitations": [
-            "TTFT estimates use wall-clock fractions, not per-token streaming",
-            "Cold store size is estimated from model architecture, not measured",
-            "Prefix caching behavior depends on vLLM version and configuration",
-        ],
+        "support_gate_result": controller.kv_mode_actual,
+        "known_limitations": limitations,
     }
+
+    lmcache_flags = ""
+    if args.use_lmcache:
+        lmcache_flags = (
+            f"--use-lmcache "
+            f"--lmcache-config {args.lmcache_config} "
+            f"--lmcache-cpu-size {args.lmcache_cpu_size} "
+        )
 
     result["rerun_command"] = (
         f"python scripts/run_tiered_experiment.py "
@@ -435,6 +516,7 @@ def main():
         f"--context-length {args.context_length} "
         f"--requests {args.requests} "
         f"--kv-mode {args.kv_mode} "
+        f"{lmcache_flags}"
         f"--promotion-policy {args.promotion_policy} "
         f"--protected-sink {args.protected_sink} "
         f"--protected-recent {args.protected_recent} "

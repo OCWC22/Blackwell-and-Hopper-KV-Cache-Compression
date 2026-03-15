@@ -36,6 +36,47 @@ Use this skill when: implementing KVTC calibration, PCA basis computation, compr
 - LMCache controller APIs support explicit compress and decompress calls
 - Keep codec modular: encode(kv_tensor, pca_basis, bit_alloc) → bytes; decode(bytes, pca_basis) → fp8_tensor
 
+## Productionization Path
+
+### Goal
+
+Productionize KVTC as the LMCache `remote_serde` codec for cold-tier KV compression. This enables:
+- More concurrent users: compressed cold tier uses less host RAM → more prefixes cached → more reuse
+- Longer context: compressed KV takes less space → larger effective context at same memory budget
+- Energy efficiency: less data movement between GPU and host → better tokens/joule
+
+### Integration point
+
+LMCache exposes `remote_serde` hook (CacheGen today). Replace CacheGen with KVTC codec for higher density.
+
+### Integration sequence
+
+1. **Raw host RAM first** — validate LMCache cold-tier reuse without compression
+2. **KVTC-compressed host RAM** — add KVTC codec to LMCache serde, measure compression/decompression latency
+3. **KVTC-compressed disk/remote** — extend to persistent storage if host RAM is insufficient
+
+### Compression targets
+
+| Ratio | Use case | Quality expectation |
+|-------|----------|-------------------|
+| 8x | Conservative, quality-first | <0.5% degradation |
+| 16x | Balanced density vs quality | <1% degradation |
+| 32x | Aggressive density, accept tradeoff | Validate explicitly |
+
+### Promotion path
+
+`cold KVTC blob → decompress → repack to FP8/NVFP4 → restore to GPU → decode continues`
+
+Decompression + repack cost is paid once on reuse, not every token.
+
+### What to measure
+
+- Compression latency (ms per MB)
+- Decompression latency (ms per MB)
+- End-to-end promotion latency (cold → hot)
+- Quality delta at each compression ratio vs FP8 baseline
+- Host RAM savings vs raw (uncompressed) cold tier
+
 ## Things To Avoid
 
 - Using KVTC as hot-path format before proving promotion latency is acceptable
