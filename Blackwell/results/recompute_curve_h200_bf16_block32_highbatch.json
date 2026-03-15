@@ -1,0 +1,369 @@
+{
+  "sweep_type": "recompute_cost",
+  "timestamp": "2026-03-15T23:12:56.694544+00:00",
+  "config": {
+    "model": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "engine": "torch",
+    "kv_mode": "bf16",
+    "block_size_tokens": 32,
+    "batch_sizes": [
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048
+    ],
+    "warmup_iters": 1,
+    "measure_iters": 3,
+    "tp": 1,
+    "max_seq_len": 131104
+  },
+  "hardware": {
+    "gpu_name": "NVIDIA H200",
+    "gpu_count": 8,
+    "driver_version": "590.48.01",
+    "cuda_version": "13.1"
+  },
+  "measurements": [
+    {
+      "context_position": 32,
+      "block_size_tokens": 32,
+      "batch_size": 32,
+      "total_batch_ms_mean": 1027.5318,
+      "total_batch_ms_min": 933.8502,
+      "total_batch_ms_max": 1115.8771,
+      "per_block_ms_mean": 32.1104,
+      "per_block_ms_min": 29.1828,
+      "per_block_ms_max": 34.8712,
+      "per_token_ms_mean": 1.0034,
+      "individual_runs_ms": [
+        1115.8771,
+        1032.8682,
+        933.8502
+      ]
+    },
+    {
+      "context_position": 32,
+      "block_size_tokens": 32,
+      "batch_size": 64,
+      "total_batch_ms_mean": 1141.0301,
+      "total_batch_ms_min": 1097.5435,
+      "total_batch_ms_max": 1187.2473,
+      "per_block_ms_mean": 17.8286,
+      "per_block_ms_min": 17.1491,
+      "per_block_ms_max": 18.5507,
+      "per_token_ms_mean": 0.5571,
+      "individual_runs_ms": [
+        1187.2473,
+        1138.2996,
+        1097.5435
+      ]
+    },
+    {
+      "context_position": 32,
+      "block_size_tokens": 32,
+      "batch_size": 128,
+      "total_batch_ms_mean": 1300.7161,
+      "total_batch_ms_min": 1225.3253,
+      "total_batch_ms_max": 1366.4927,
+      "per_block_ms_mean": 10.1618,
+      "per_block_ms_min": 9.5729,
+      "per_block_ms_max": 10.6757,
+      "per_token_ms_mean": 0.3176,
+      "individual_runs_ms": [
+        1366.4927,
+        1310.3304,
+        1225.3253
+      ]
+    },
+    {
+      "context_position": 32,
+      "block_size_tokens": 32,
+      "batch_size": 256,
+      "total_batch_ms_mean": 1431.1093,
+      "total_batch_ms_min": 1421.8889,
+      "total_batch_ms_max": 1445.8915,
+      "per_block_ms_mean": 5.5903,
+      "per_block_ms_min": 5.5543,
+      "per_block_ms_max": 5.648,
+      "per_token_ms_mean": 0.1747,
+      "individual_runs_ms": [
+        1445.8915,
+        1421.8889,
+        1425.5476
+      ]
+    },
+    {
+      "context_position": 32,
+      "block_size_tokens": 32,
+      "batch_size": 512,
+      "total_batch_ms_mean": 1756.4921,
+      "total_batch_ms_min": 1716.8193,
+      "total_batch_ms_max": 1790.9952,
+      "per_block_ms_mean": 3.4306,
+      "per_block_ms_min": 3.3532,
+      "per_block_ms_max": 3.498,
+      "per_token_ms_mean": 0.1072,
+      "individual_runs_ms": [
+        1716.8193,
+        1790.9952,
+        1761.6619
+      ]
+    },
+    {
+      "context_position": 32,
+      "block_size_tokens": 32,
+      "batch_size": 1024,
+      "total_batch_ms_mean": 2386.644,
+      "total_batch_ms_min": 2324.7456,
+      "total_batch_ms_max": 2437.7566,
+      "per_block_ms_mean": 2.3307,
+      "per_block_ms_min": 2.2703,
+      "per_block_ms_max": 2.3806,
+      "per_token_ms_mean": 0.0728,
+      "individual_runs_ms": [
+        2324.7456,
+        2397.4297,
+        2437.7566
+      ]
+    },
+    {
+      "context_position": 32,
+      "block_size_tokens": 32,
+      "batch_size": 2048,
+      "error": "CUDA out of memory. Tried to allocate 18.55 GiB. GPU 0 has a total capacity of 139.80 GiB of which 3.76 GiB is free. Including non-PyTorch memory, this process has 136.03 GiB memory in use. Of the allocated memory 105.70 GiB is allocated by PyTorch, and 29.66 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)"
+    },
+    {
+      "context_position": 128,
+      "block_size_tokens": 32,
+      "batch_size": 32,
+      "total_batch_ms_mean": 826.6462,
+      "total_batch_ms_min": 816.9008,
+      "total_batch_ms_max": 833.4421,
+      "per_block_ms_mean": 25.8327,
+      "per_block_ms_min": 25.5282,
+      "per_block_ms_max": 26.0451,
+      "per_token_ms_mean": 0.8073,
+      "individual_runs_ms": [
+        816.9008,
+        833.4421,
+        829.5957
+      ]
+    },
+    {
+      "context_position": 128,
+      "block_size_tokens": 32,
+      "batch_size": 64,
+      "total_batch_ms_mean": 913.87,
+      "total_batch_ms_min": 910.727,
+      "total_batch_ms_max": 915.5233,
+      "per_block_ms_mean": 14.2792,
+      "per_block_ms_min": 14.2301,
+      "per_block_ms_max": 14.3051,
+      "per_token_ms_mean": 0.4462,
+      "individual_runs_ms": [
+        915.3597,
+        915.5233,
+        910.727
+      ]
+    },
+    {
+      "context_position": 128,
+      "block_size_tokens": 32,
+      "batch_size": 128,
+      "total_batch_ms_mean": 1015.9738,
+      "total_batch_ms_min": 1001.3334,
+      "total_batch_ms_max": 1030.0967,
+      "per_block_ms_mean": 7.9373,
+      "per_block_ms_min": 7.8229,
+      "per_block_ms_max": 8.0476,
+      "per_token_ms_mean": 0.248,
+      "individual_runs_ms": [
+        1001.3334,
+        1016.4913,
+        1030.0967
+      ]
+    },
+    {
+      "context_position": 128,
+      "block_size_tokens": 32,
+      "batch_size": 256,
+      "total_batch_ms_mean": 1251.0716,
+      "total_batch_ms_min": 1230.9226,
+      "total_batch_ms_max": 1262.2433,
+      "per_block_ms_mean": 4.887,
+      "per_block_ms_min": 4.8083,
+      "per_block_ms_max": 4.9306,
+      "per_token_ms_mean": 0.1527,
+      "individual_runs_ms": [
+        1230.9226,
+        1260.0488,
+        1262.2433
+      ]
+    },
+    {
+      "context_position": 128,
+      "block_size_tokens": 32,
+      "batch_size": 512,
+      "total_batch_ms_mean": 1694.405,
+      "total_batch_ms_min": 1673.478,
+      "total_batch_ms_max": 1708.9207,
+      "per_block_ms_mean": 3.3094,
+      "per_block_ms_min": 3.2685,
+      "per_block_ms_max": 3.3377,
+      "per_token_ms_mean": 0.1034,
+      "individual_runs_ms": [
+        1673.478,
+        1708.9207,
+        1700.8163
+      ]
+    },
+    {
+      "context_position": 128,
+      "block_size_tokens": 32,
+      "batch_size": 1024,
+      "error": "CUDA out of memory. Tried to allocate 9.27 GiB. GPU 0 has a total capacity of 139.80 GiB of which 7.04 GiB is free. Including non-PyTorch memory, this process has 132.76 GiB memory in use. Of the allocated memory 115.12 GiB is allocated by PyTorch, and 16.96 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)"
+    },
+    {
+      "context_position": 128,
+      "block_size_tokens": 32,
+      "batch_size": 2048,
+      "error": "OOM"
+    },
+    {
+      "context_position": 512,
+      "block_size_tokens": 32,
+      "batch_size": 32,
+      "total_batch_ms_mean": 821.7617,
+      "total_batch_ms_min": 808.6848,
+      "total_batch_ms_max": 829.1487,
+      "per_block_ms_mean": 25.6801,
+      "per_block_ms_min": 25.2714,
+      "per_block_ms_max": 25.9109,
+      "per_token_ms_mean": 0.8025,
+      "individual_runs_ms": [
+        808.6848,
+        829.1487,
+        827.4515
+      ]
+    },
+    {
+      "context_position": 512,
+      "block_size_tokens": 32,
+      "batch_size": 64,
+      "total_batch_ms_mean": 914.6583,
+      "total_batch_ms_min": 906.0804,
+      "total_batch_ms_max": 923.2817,
+      "per_block_ms_mean": 14.2915,
+      "per_block_ms_min": 14.1575,
+      "per_block_ms_max": 14.4263,
+      "per_token_ms_mean": 0.4466,
+      "individual_runs_ms": [
+        906.0804,
+        923.2817,
+        914.6127
+      ]
+    },
+    {
+      "context_position": 512,
+      "block_size_tokens": 32,
+      "batch_size": 128,
+      "total_batch_ms_mean": 1105.9329,
+      "total_batch_ms_min": 1089.585,
+      "total_batch_ms_max": 1121.7018,
+      "per_block_ms_mean": 8.6401,
+      "per_block_ms_min": 8.5124,
+      "per_block_ms_max": 8.7633,
+      "per_token_ms_mean": 0.27,
+      "individual_runs_ms": [
+        1089.585,
+        1121.7018,
+        1106.512
+      ]
+    },
+    {
+      "context_position": 512,
+      "block_size_tokens": 32,
+      "batch_size": 256,
+      "total_batch_ms_mean": 1431.2729,
+      "total_batch_ms_min": 1417.4355,
+      "total_batch_ms_max": 1448.1935,
+      "per_block_ms_mean": 5.5909,
+      "per_block_ms_min": 5.5369,
+      "per_block_ms_max": 5.657,
+      "per_token_ms_mean": 0.1747,
+      "individual_runs_ms": [
+        1428.1896,
+        1448.1935,
+        1417.4355
+      ]
+    },
+    {
+      "context_position": 512,
+      "block_size_tokens": 32,
+      "batch_size": 512,
+      "error": "OOM"
+    },
+    {
+      "context_position": 2048,
+      "block_size_tokens": 32,
+      "batch_size": 32,
+      "total_batch_ms_mean": 895.585,
+      "total_batch_ms_min": 887.07,
+      "total_batch_ms_max": 900.0326,
+      "per_block_ms_mean": 27.987,
+      "per_block_ms_min": 27.7209,
+      "per_block_ms_max": 28.126,
+      "per_token_ms_mean": 0.8746,
+      "individual_runs_ms": [
+        887.07,
+        900.0326,
+        899.6523
+      ]
+    },
+    {
+      "context_position": 2048,
+      "block_size_tokens": 32,
+      "batch_size": 64,
+      "total_batch_ms_mean": 1093.3051,
+      "total_batch_ms_min": 1087.9629,
+      "total_batch_ms_max": 1101.0662,
+      "per_block_ms_mean": 17.0829,
+      "per_block_ms_min": 16.9994,
+      "per_block_ms_max": 17.2042,
+      "per_token_ms_mean": 0.5338,
+      "individual_runs_ms": [
+        1090.8862,
+        1101.0662,
+        1087.9629
+      ]
+    },
+    {
+      "context_position": 2048,
+      "block_size_tokens": 32,
+      "batch_size": 128,
+      "error": "OOM"
+    },
+    {
+      "context_position": 8192,
+      "block_size_tokens": 32,
+      "batch_size": 32,
+      "error": "OOM"
+    },
+    {
+      "context_position": 32768,
+      "block_size_tokens": 32,
+      "batch_size": 32,
+      "error": "OOM"
+    },
+    {
+      "context_position": 131072,
+      "block_size_tokens": 32,
+      "batch_size": 32,
+      "error": "OOM"
+    }
+  ],
+  "rerun_command": "python scripts/sweep_recompute_cost.py --model Qwen/Qwen3-30B-A3B-Instruct-2507 --engine torch --kv-mode bf16 --block-size 32 --positions 32,128,512,2048,8192,32768,131072 --batch-sizes 32,64,128,256,512,1024,2048 --warmup-iters 1 --measure-iters 3 --tp 1 --max-seq-len 131104 --output results/recompute_curve_h200_bf16_block32_highbatch.json"
+}
