@@ -1,6 +1,6 @@
 # nsys-ncu-profiler
 
-Use this skill when preparing or analyzing Nsight Systems or Nsight Compute profiling runs for the Blackwell NVFP4 + KVTC runtime.
+Use this skill when preparing or analyzing Nsight Systems or Nsight Compute profiling runs for the Blackwell vLLM + LMCache tiered KV runtime.
 
 ## Profiling Rules
 

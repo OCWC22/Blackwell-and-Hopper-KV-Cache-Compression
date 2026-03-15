@@ -65,71 +65,43 @@ Rerun commands:
 - Exact commands above
 ```
 
-## 3. NVFP4 Baseline (If Support Gate Passes)
+## 3. LMCache Cold-Tier Reuse
 
 ```text
-Run NVFP4 baseline and add to comparison table. Only if env_probe.json shows nvfp4_kv_supported is true.
-
-Files to read:
-- results/env_probe.json
-- scripts/run_baseline.py
-
-Actions:
-1. Check results/env_probe.json — if nvfp4_kv_supported is not true, skip and document why
-2. python scripts/run_baseline.py --kv-mode nvfp4 --context-length 8192 --requests 10 --output results/baseline_nvfp4_8192.json
-3. python scripts/compare_results.py --output results/comparison.md
-
-Expected output:
-- results/baseline_nvfp4_8192.json (or skip note if unsupported)
-- Updated results/comparison.md
-
-Benchmark table:
-- BF16 vs FP8 vs NVFP4
-
-Bottleneck note:
-- Does NVFP4 reduce HBM vs FP8? What's the latency trade?
-- If NVFP4 is not supported, record the exact error and the fallback decision.
-```
-
-## 4. Tiered Experiment — Demand Promotion
-
-```text
-Run the first tiered KV experiment with demand promotion.
+Run vLLM + LMCache cold-tier reuse on repeated-prefix workload.
 
 Files to read:
 - scripts/run_tiered_experiment.py
-- TIERED_KV_ARCHITECTURE.md (Bucket 2: Repo Hypothesis)
+- TIERED_KV_ARCHITECTURE.md
 
 Actions:
-1. python scripts/run_tiered_experiment.py --kv-mode fp8 --promotion-policy demand --context-length 8192 --requests 10 --output results/tiered_fp8_demand_8192.json
+1. python scripts/run_tiered_experiment.py --kv-mode fp8 --promotion-policy demand --cold-tier-backend host_ram --context-length 8192 --requests 10 --output results/tiered_fp8_lmcache_8192.json
 2. python scripts/compare_results.py --output results/comparison.md
 
 Expected output:
-- results/tiered_fp8_demand_8192.json
+- results/tiered_fp8_lmcache_8192.json
 - Updated results/comparison.md
 
 Benchmark table:
-- Must show cold-path TTFT vs warm-path TTFT
-- Must show promotion latency
-- Must show eligible blocks percentage
+- BF16 vs FP8 vs FP8+LMCache
 
 Bottleneck note:
-- Is the TTFT improvement from cache reuse meaningful?
-- What fraction of tokens was eligible for cold tier?
-- Does promotion latency dominate or get amortized?
+- Does LMCache reuse improve TTFT on repeated-prefix traffic?
+- What is the cache hit rate? What is the restore/promotion latency?
+- Is the TTFT improvement meaningful enough to justify the cold-tier overhead?
 ```
 
-## 5. Policy Ablation — Eager vs Demand
+## 4. Policy Ablation — Demand vs Eager
 
 ```text
-Run eager promotion and compare against demand promotion.
+Run eager promotion and compare against demand promotion from prompt 3.
 
 Files to read:
-- results/tiered_fp8_demand_8192.json (must exist from prompt 4)
+- results/tiered_fp8_lmcache_8192.json (must exist from prompt 3)
 - scripts/run_tiered_experiment.py
 
 Actions:
-1. python scripts/run_tiered_experiment.py --kv-mode fp8 --promotion-policy eager --context-length 8192 --requests 10 --output results/tiered_fp8_eager_8192.json
+1. python scripts/run_tiered_experiment.py --kv-mode fp8 --promotion-policy eager --cold-tier-backend host_ram --context-length 8192 --requests 10 --output results/tiered_fp8_eager_8192.json
 2. python scripts/compare_results.py --output results/comparison.md
 
 Expected output:
@@ -137,11 +109,38 @@ Expected output:
 - Updated results/comparison.md
 
 Benchmark table:
-- Demand vs eager: TTFT, promotion latency, HBM
+- Demand vs eager: TTFT, promotion latency, HBM, cache hit rate
 
 Bottleneck note:
 - Which policy wins on TTFT? Which wins on HBM?
 - Is eager pre-warming worth the upfront cost?
+```
+
+## 5. Concurrency / Request-Rate Sweep
+
+```text
+Run a concurrency and request-rate sweep to answer: at the same p95 latency target, how much higher concurrency can one GPU sustain with LMCache reuse enabled?
+
+Files to read:
+- results/tiered_fp8_lmcache_8192.json
+- scripts/run_tiered_experiment.py
+
+Actions:
+1. For each concurrency in [1, 2, 4, 8, 16, 32]:
+   python scripts/run_tiered_experiment.py --kv-mode fp8 --promotion-policy demand --cold-tier-backend host_ram --context-length 8192 --concurrency $C --output results/sweep_fp8_lmcache_c${C}.json
+2. Stop when p95 TPOT becomes unacceptable (>10% regression vs baseline)
+3. python scripts/compare_results.py --output results/comparison.md
+
+Expected output:
+- results/sweep_fp8_lmcache_c*.json
+- Updated results/comparison.md
+
+Benchmark table:
+- Concurrency vs TTFT, TPOT p95, throughput, peak HBM
+
+Bottleneck note:
+- At what concurrency does p95 blow up?
+- How many more concurrent sessions does LMCache reuse enable?
 ```
 
 ## 6. Slurm Sweep
@@ -195,7 +194,7 @@ Expected output:
 - results/comparison.md (final version with all runs)
 
 Benchmark table:
-- Full matrix: bf16, fp8, nvfp4 (if supported), tiered_demand, tiered_eager
+- Full matrix: bf16, fp8, fp8+lmcache, tiered_demand, tiered_eager
 
 Bottleneck note:
 - One sentence: "The primary bottleneck is X because Y"

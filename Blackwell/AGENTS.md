@@ -2,50 +2,50 @@
 
 ## Mission
 
-Validate one concrete systems hypothesis on Blackwell / B200:
+Validate that a Blackwell-first, vLLM + LMCache compatible tiered KV runtime improves reuse-heavy long-context serving.
 
-**A tiered KV runtime can improve real inference serving economics by keeping hot active KV on GPU and storing reusable cold/warm KV in a cheaper tier, then restoring it only when reuse happens.**
-
-The outcome we care about is not compression ratio alone.
-
-The outcome we care about is at least one of:
-- more concurrent sessions per GPU
-- lower peak HBM usage
-- longer effective context
+Primary measurable outcomes:
+- lower peak HBM
 - better TTFT on repeated-prefix traffic
-- better tokens served per joule
+- more concurrent sessions at fixed p95 target
+- longer effective context
 
-while keeping:
-- p95 / p99 decode latency acceptable
-- quality degradation bounded
+Primary runtime path:
+- vLLM hot KV path
+- LMCache cold/warm reusable KV path
 
-We are not measuring compression ratios. We are measuring whether tiering changes serving economics.
+Runtime honesty rule:
+- treat vLLM FP8 KV cache as the stable documented hot-tier path
+- treat NVFP4 as a Blackwell-aware support-gated enhancement, not a guaranteed public vLLM hot-KV capability
+- treat KVTC as a cold-tier codec candidate, not a same-day blocker
 
 This repo is not building a new inference engine.
-This repo is testing a KV-lifecycle controller around existing serving stacks.
+This repo is testing a KV-lifecycle controller around existing serving stacks (vLLM, LMCache).
 
 ## Execution Ladder
 
 Run this ladder in order. Do not skip steps.
 
-1. **Support gate** — run `scripts/env_probe.sh`, determine NVFP4/FP8 KV support
-2. `BF16` or default KV baseline
-3. `FP8` KV baseline
-4. `NVFP4` KV baseline (only if support gate passes)
-5. Tiered experiment — hot GPU tier + host RAM cold tier with demand promotion
-6. Policy ablation — demand vs eager promotion
+1. **Support gate** — run `scripts/env_probe.sh`, determine FP8/NVFP4 KV support
+2. vLLM BF16 baseline
+3. vLLM FP8 KV baseline
+4. vLLM + LMCache cold-tier reuse
+5. One promotion / reuse-policy ablation
+6. One-node run only after single-GPU success
 
 Each step answers a concrete question about serving capacity, not about compression.
+Do not block on undocumented NVFP4 hot-KV assumptions in vLLM.
 
 ## Non-Negotiable Constraints
 
 - Target Blackwell / B200 first.
-- Hot-tier KV format depends on support gate: NVFP4 if verified, FP8 as fallback.
-- `KVTC` is a warm or cold tier unless hot-path latency proves acceptable.
-- Use whichever runtime (vLLM or TRT-LLM) produces a clean baseline first.
+- FP8 KV cache is the stable documented hot-tier path in vLLM.
+- NVFP4 is a Blackwell-aware optional enhancement — only use if runtime support is explicitly verified.
+- `KVTC` is a cold-tier codec candidate, not the cold tier itself. `LMCache` is the cold/warm tier software layer.
+- vLLM is the serving runtime. LMCache is the KV reuse/offload layer.
 - Prefer Slurm-safe execution. Keep long jobs out of login nodes.
 - Store machine-readable outputs under `results/` and job logs under `logs/`.
-- Do not assume NVFP4 hot-KV support — treat it as a stack support gate.
+- Do not block on undocumented NVFP4 hot-KV assumptions in vLLM.
 - Do not couple KVTC integration risk with tiering risk on day zero.
 
 ## Hardware Context
@@ -100,7 +100,7 @@ Codex role files live in `.codex/agents/`. Claude subagents live in `.claude/age
 - `repo-explorer`: identify the next concrete repo change that shortens time to a real Blackwell run
 - `slurm-operator`: make execution safe and reproducible on the cluster
 - `kv-cache-researcher`: shape experiment plans, metrics, and ablations
-- `blackwell-runtime-optimizer`: guide the `NVFP4 + KVTC` runtime work
+- `blackwell-runtime-optimizer`: guide the vLLM + LMCache tiered KV runtime work
 - `eval-guard`: keep latency and quality evaluation honest
 - `kvtc-codec-engineer`: implement KVTC calibration, compression, decompression, and LMCache serde integration
 - `modelopt-quantizer`: run ModelOpt NVFP4-KV quantization and export checkpoints for TensorRT-LLM
@@ -139,7 +139,8 @@ Codex role files live in `.codex/agents/`. Claude subagents live in `.claude/age
 
 ## What Good Progress Looks Like
 
-- The repo can run reproducible `BF16`, `FP8`, and `NVFP4` baselines.
-- The repo can describe and evaluate an `NVFP4 + KVTC` tiering path.
+- The repo can run reproducible `BF16` and `FP8` baselines on vLLM.
+- The repo can describe and evaluate a vLLM + LMCache tiered KV reuse path.
+- NVFP4 baselines are included only if runtime support is verified.
 - Slurm scripts are safe to submit without manual patching.
-- Results make promotion cost, memory savings, and quality tradeoffs easy to compare.
+- Results make reuse benefit, memory savings, and quality tradeoffs easy to compare.

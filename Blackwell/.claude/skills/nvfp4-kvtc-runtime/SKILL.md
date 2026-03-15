@@ -1,18 +1,20 @@
 # nvfp4-kvtc-runtime
 
-Use this skill when implementing or reviewing the Blackwell-native `NVFP4 + KVTC` runtime.
+Use this skill when implementing or reviewing the Blackwell-first vLLM + LMCache tiered KV runtime.
 
 ## Mental Model
 
-- `NVFP4` is the resident active-KV format.
-- `KVTC` is the warm or cold representation for stale or reusable KV.
+- vLLM FP8 KV cache is the stable hot-tier path.
+- `LMCache` manages the cold/warm reusable KV layer.
+- `NVFP4` is an optional Blackwell enhancement if runtime support is verified.
+- `KVTC` is a cold-tier codec candidate.
 - The main systems risk is promotion latency, not whether compression exists in principle.
 - Quality protection is mandatory if the tiering policy becomes more aggressive.
 
 ## Implementation Guidance
 
-1. Define what stays resident in `NVFP4`.
-2. Define what is eligible for `KVTC`.
+1. Define what stays resident in the hot tier (FP8, or NVFP4 if verified).
+2. Define what is eligible for cold-tier storage via `LMCache`.
 3. Make promotion logging explicit, including policy and hit or miss counts.
 4. Keep the hot and warm path modular so policy work can evolve later.
 5. Measure promotion overhead alongside memory savings.

@@ -4,77 +4,86 @@ Retrieved and updated on `2026-03-14`.
 
 ## Thesis
 
-This is the practical hackathon path:
+This repo validates that on Blackwell/B200, a hot/cold KV lifecycle can improve serving economics for reuse-heavy long-context inference.
 
-- keep active or hot KV in native `NVFP4`
-- move stale, reusable, or oversized KV into a `KVTC` warm or cold tier
-- optimize the promotion path from `KVTC` back into `NVFP4`
-- preserve quality while lowering HBM pressure and avoiding decode-latency regressions
+The primary runtime path:
+- **vLLM** is the serving engine with FP8 KV cache as the stable documented hot-tier path
+- **LMCache** is the cold/warm reusable KV layer for KV lookup/inject/offload/sharing
+- **NVFP4** is a Blackwell-aware optional hot-tier enhancement — only use if runtime support is explicitly verified
+- **KVTC** is a cold-tier codec candidate for compressing reusable KV in LMCache
 
-The repo should treat `vLLM` as the serving baseline and `LMCache` as the storage or offload baseline. The wedge is the Blackwell-native KV runtime and policy layer, not a replacement inference engine.
+The metric of success is not compression ratio alone, but lower HBM pressure, more concurrent sessions, better TTFT under reuse, or longer effective context.
 
 ## What We Are Actually Validating In 24 Hours
 
+Can Blackwell + vLLM hot KV + LMCache cold reusable KV improve one of these on a single GPU and then one node:
+- lower peak HBM
+- better TTFT on repeated-prefix traffic
+- more concurrent sessions at fixed latency target
+- longer effective context
+
+without unacceptable p95/p99 or quality regressions?
+
 We need to answer these questions, in order:
 
-1. Can we run aligned `BF16`, `FP8`, and native `NVFP4` baselines on the same model and prompts?
-2. Does `NVFP4` give the expected memory reduction without unacceptable quality loss on our actual workload?
-3. Can `KVTC` act as a warm or cold tier for stale or reusable KV without giving back the win in promotion latency?
-4. Which policy is best for the weekend:
-   - eager promotion
-   - demand fetch
-   - protected recent window
-   - protected sink or pivot tokens
+1. Can we run aligned `BF16` and `FP8` baselines on vLLM with the same model and prompts?
+2. Does FP8 KV give expected memory reduction without unacceptable quality loss?
+3. Can LMCache cold-tier reuse improve TTFT on repeated-prefix traffic?
+4. Which reuse / promotion policy works best: demand vs eager?
 
-If we cannot answer those four questions with clean data, the demo is still too speculative.
+If we cannot answer those questions with clean data, the demo is still too speculative.
 
 ## Hardware-Aware Framing
 
-Blackwell changes the equation because the hot format is no longer an emulation:
+Blackwell/B200 makes the tiered KV lifecycle economically interesting:
 
-- `NVFP4` is native on Blackwell and should be treated as the real active-KV primitive.
-- NVIDIA describes `NVFP4` as using a low-precision data format with microscaling that keeps accuracy materially better than naive 4-bit schemes.
-- NVIDIA also documents Blackwell KV-cache optimizations for longer context windows and earlier KV reuse behavior.
+- vLLM FP8 KV cache is the stable, documented hot-tier path
+- LMCache integrates with vLLM and supports KV lookup/inject/offload/sharing for reusable prefixes
+- NVFP4 is Blackwell-native (E2M1 + FP8 E4M3 microscaling) — relevant as a hot-tier enhancement if vLLM runtime support is verified, not as an assumed baseline
+- KVTC is a transform codec (PCA decorrelation + adaptive quantization + entropy coding) — relevant as a cold-tier compression candidate, not as a hot-tier format
 
-The practical implication is simple:
+The practical implication:
 
-- the weekend path should not waste time reinventing native `NVFP4`
-- the real systems question is how to tier and promote KV without losing the latency win
+- the weekend path uses vLLM FP8 KV as the stable hot tier, not undocumented NVFP4 assumptions
+- the real systems question is whether LMCache cold-tier reuse improves serving economics
 
 ## Baseline Ladder
 
 Always benchmark in this order:
 
-1. `BF16` or default KV baseline
-2. `FP8` KV baseline
-3. native `NVFP4` baseline
-4. optional `LMCache` CPU or local-disk offload baseline if it is already easy to run
-5. `NVFP4 + KVTC` tiering path
-6. `NVFP4 + KVTC + protected recent window`
-7. `NVFP4 + KVTC + protected sink or pivot tokens`
+1. vLLM BF16 baseline
+2. vLLM FP8 KV baseline
+3. vLLM FP8 KV + LMCache cold-tier reuse
+4. one promotion / reuse-policy ablation (demand vs eager)
+5. one-node run only after single-GPU success
+6. optional: NVFP4 baseline if runtime support verified
+7. optional: KVTC as cold-tier compression if codec ready
 
-This is the minimum ladder that lets us say whether the custom runtime policy is real.
+Do not block on steps 6-7. Steps 1-4 are the core experiment.
 
-## Architecture Hypothesis
-
-Use a two-tier KV hierarchy first:
+## Architecture
 
 ```text
-Tier 0: resident active KV in NVFP4
-    |
-    | decode consumes from here
-    v
-Tier 1: stale / reusable / oversized KV in KVTC form
-    |
-    | promotion path reconstructs what is needed
-    v
-Back into Tier 0 NVFP4 for active decode
+Request arrives
+  ↓
+vLLM hot KV path on GPU
+  - documented stable path: FP8 KV cache
+  - Blackwell-aware future path: NVFP4 hot-KV if runtime support is proven
+  ↓
+LMCache reusable KV layer
+  - lookup / inject / async store
+  ↓
+Cold reusable tier
+  - host RAM first
+  - KVTC as compression candidate
+  ↓
+restore / promotion only on reuse
 ```
 
 Optional extensions only after the first tiering path works:
 
-- `LMCache` as the persistence or offload baseline
-- node-local storage for warm cache artifacts
+- KVTC compression in the cold tier
+- NVFP4 hot-tier enhancement if runtime support verified
 - multi-GPU or disaggregated follow-up if the single-GPU path is stable
 
 ## Metrics
@@ -84,7 +93,7 @@ Every run should record:
 - model and revision
 - context length
 - batch size
-- KV mode: `BF16`, `FP8`, `NVFP4`, or `NVFP4 + KVTC`
+- KV mode: `BF16`, `FP8`, `FP8 + LMCache`, or optional `NVFP4`
 - `p50` decode latency
 - `p95` decode latency
 - tokens per second
@@ -99,14 +108,14 @@ If we cannot compare quality and latency in the same artifact, we will make bad 
 ### Phase 1: make the baselines real
 
 - harden the baseline harness
-- run `BF16`, `FP8`, and `NVFP4`
+- run `BF16` and `FP8` on vLLM
 - verify output schema and reproducibility
 
-### Phase 2: define the tiering surface
+### Phase 2: enable LMCache cold-tier reuse
 
-- decide what is eligible for `KVTC`
-- decide what must stay resident in `NVFP4`
-- define the promotion interface and logging
+- configure LMCache integration with vLLM
+- run FP8 KV + LMCache on repeated-prefix workload
+- measure TTFT improvement and cache hit rate
 
 ### Phase 3: run small ablations
 
@@ -122,7 +131,8 @@ If we cannot compare quality and latency in the same artifact, we will make bad 
 
 ## What Not To Do
 
-- do not treat `KVTC` as a guaranteed hot-path win before proving latency
+- do not claim NVFP4 hot-KV support in vLLM unless explicitly verified at runtime
+- do not treat `KVTC` as a hot-path format — it is a cold-tier codec candidate
 - do not blur Blackwell-native behavior with Hopper emulation
 - do not claim a breakthrough if it only beats a strawman baseline
 - do not drop quality measurement because the memory numbers look good
@@ -131,10 +141,10 @@ If we cannot compare quality and latency in the same artifact, we will make bad 
 
 The hackathon output should contain:
 
-1. a clean benchmark table for `BF16`, `FP8`, and `NVFP4`
-2. one first-pass `NVFP4 + KVTC` result, even if it is partial
+1. a clean benchmark table for `BF16`, `FP8`, and `FP8 + LMCache`
+2. one tiered reuse result showing TTFT improvement or HBM reduction
 3. one profile or bottleneck explanation that points to the next iteration
-4. one short explanation of whether the idea deserves follow-on work
+4. one defendable sentence: "On the same B200 hardware, our Blackwell-first vLLM + LMCache tiered KV setup served more reuse-heavy long-context traffic by reducing repeated prefill work and/or lowering peak KV memory pressure, while keeping latency and quality within acceptable bounds."
 
 ## Source Notes
 

@@ -1,10 +1,10 @@
 # latency-quality-eval
 
-Use this skill when the task involves measuring performance or quality retention for the Blackwell NVFP4 + KVTC KV runtime.
+Use this skill when the task involves measuring performance or quality retention for the Blackwell vLLM + LMCache tiered KV runtime.
 
 ## Evaluation Rules
 
-- Compare `BF16`, `FP8`, `NVFP4`, and `NVFP4 + KVTC` with aligned prompts and generation settings.
+- Compare `BF16`, `FP8`, `FP8 + LMCache`, and optional `NVFP4` with aligned prompts and generation settings.
 - Use stable seeds when the framework allows it.
 - Record latency, throughput, memory, and quality in the same artifact.
 - Keep outputs machine-readable and easy to diff.
@@ -19,7 +19,7 @@ Use this skill when the task involves measuring performance or quality retention
 | throughput | tokens per second |
 | HBM footprint | peak GPU memory |
 | cache-hit rate | prefix cache hit percentage |
-| promotion latency | time to promote KVTC → NVFP4 (when applicable) |
+| promotion latency | time to restore cold KV → hot tier (when applicable) |
 | accuracy delta | quality vs best higher-precision baseline |
 
 ## Accuracy Benchmarks
