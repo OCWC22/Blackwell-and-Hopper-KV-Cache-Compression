@@ -1,0 +1,2884 @@
+{
+  "benchmark": "kv_block_offload_restore",
+  "timestamp": "2026-03-15T22:49:00.311685+00:00",
+  "hardware": {
+    "gpu_model": "NVIDIA B200",
+    "driver_version": "590.48.01",
+    "cuda_version": "12.8",
+    "gpu_count": 1
+  },
+  "model_config": {
+    "name": "llama-3-8b",
+    "num_layers": 32,
+    "num_kv_heads": 8,
+    "head_dim": 128
+  },
+  "dataset": {
+    "name": "synthetic",
+    "sessions": 0
+  },
+  "params": {
+    "warmup": 3,
+    "iters": 10,
+    "block_sizes_tokens": [
+      1,
+      16,
+      64,
+      256,
+      1024
+    ],
+    "batch_counts": [
+      1,
+      4,
+      16,
+      64,
+      256
+    ],
+    "fp4_group_size": 32
+  },
+  "measurements": [
+    {
+      "block_size_tokens": 1,
+      "batch_count": 1,
+      "format": "bf16",
+      "bytes_per_block": 131072,
+      "total_bytes": 131072,
+      "elements_per_block": 65536,
+      "hbm_copy": {
+        "latency_ms_median": 0.0137,
+        "latency_ms_p5": 0.0129,
+        "latency_ms_p95": 0.0242,
+        "throughput_gbps": 9.58
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.023,
+        "latency_ms_p5": 0.0228,
+        "latency_ms_p95": 0.033,
+        "throughput_gbps": 5.69
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.0233,
+        "latency_ms_p5": 0.0226,
+        "latency_ms_p95": 0.0312,
+        "throughput_gbps": 5.63
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 1.457,
+        "latency_ms_p5": 1.3273,
+        "latency_ms_p95": 1.6204,
+        "throughput_gbps": 0.09
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 0.0645,
+        "latency_ms_p5": 0.0614,
+        "latency_ms_p95": 0.0752,
+        "throughput_gbps": 2.03
+      }
+    },
+    {
+      "block_size_tokens": 1,
+      "batch_count": 1,
+      "format": "fp8",
+      "bytes_per_block": 65536,
+      "total_bytes": 65536,
+      "elements_per_block": 65536,
+      "hbm_copy": {
+        "latency_ms_median": 0.0167,
+        "latency_ms_p5": 0.0161,
+        "latency_ms_p95": 0.0199,
+        "throughput_gbps": 3.92
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.0237,
+        "latency_ms_p5": 0.0234,
+        "latency_ms_p95": 0.0256,
+        "throughput_gbps": 2.77
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.0243,
+        "latency_ms_p5": 0.0228,
+        "latency_ms_p95": 0.031,
+        "throughput_gbps": 2.7
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 1.3973,
+        "latency_ms_p5": 1.3674,
+        "latency_ms_p95": 1.4752,
+        "throughput_gbps": 0.05
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 0.0507,
+        "latency_ms_p5": 0.0504,
+        "latency_ms_p95": 0.0519,
+        "throughput_gbps": 1.29
+      },
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.0165,
+          "latency_ms_p5": 0.0157,
+          "latency_ms_p95": 0.0294
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 0.0163,
+          "latency_ms_p5": 0.0157,
+          "latency_ms_p95": 0.0192
+        }
+      }
+    },
+    {
+      "block_size_tokens": 1,
+      "batch_count": 1,
+      "format": "fp4",
+      "bytes_per_block": 32768,
+      "total_bytes": 32768,
+      "elements_per_block": 65536,
+      "hbm_copy": {
+        "latency_ms_median": 0.0142,
+        "latency_ms_p5": 0.0131,
+        "latency_ms_p95": 0.0167,
+        "throughput_gbps": 2.31
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.0212,
+        "latency_ms_p5": 0.021,
+        "latency_ms_p95": 0.0223,
+        "throughput_gbps": 1.55
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.022,
+        "latency_ms_p5": 0.0207,
+        "latency_ms_p95": 0.03,
+        "throughput_gbps": 1.49
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 1.1163,
+        "latency_ms_p5": 1.0986,
+        "latency_ms_p95": 1.1797,
+        "throughput_gbps": 0.03
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 0.0393,
+        "latency_ms_p5": 0.0379,
+        "latency_ms_p95": 0.0412,
+        "throughput_gbps": 0.83
+      },
+      "cast_overhead": {
+        "pack_bf16_to_fp4": {
+          "latency_ms_median": 0.135,
+          "latency_ms_p5": 0.127,
+          "latency_ms_p95": 0.1667
+        },
+        "unpack_fp4_to_f32": {
+          "latency_ms_median": 0.1293,
+          "latency_ms_p5": 0.1236,
+          "latency_ms_p95": 0.1419
+        }
+      }
+    },
+    {
+      "block_size_tokens": 1,
+      "batch_count": 4,
+      "format": "bf16",
+      "bytes_per_block": 131072,
+      "total_bytes": 524288,
+      "elements_per_block": 65536,
+      "hbm_copy": {
+        "latency_ms_median": 0.0129,
+        "latency_ms_p5": 0.0124,
+        "latency_ms_p95": 0.0152,
+        "throughput_gbps": 40.66
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.0301,
+        "latency_ms_p5": 0.0298,
+        "latency_ms_p95": 0.0321,
+        "throughput_gbps": 17.4
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.0301,
+        "latency_ms_p5": 0.0294,
+        "latency_ms_p95": 0.034,
+        "throughput_gbps": 17.4
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 2.0097,
+        "latency_ms_p5": 1.8919,
+        "latency_ms_p95": 2.202,
+        "throughput_gbps": 0.26
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 0.1769,
+        "latency_ms_p5": 0.1598,
+        "latency_ms_p95": 0.1775,
+        "throughput_gbps": 2.96
+      }
+    },
+    {
+      "block_size_tokens": 1,
+      "batch_count": 4,
+      "format": "fp8",
+      "bytes_per_block": 65536,
+      "total_bytes": 262144,
+      "elements_per_block": 65536,
+      "hbm_copy": {
+        "latency_ms_median": 0.0163,
+        "latency_ms_p5": 0.0158,
+        "latency_ms_p95": 0.0325,
+        "throughput_gbps": 16.05
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.0272,
+        "latency_ms_p5": 0.0271,
+        "latency_ms_p95": 0.0278,
+        "throughput_gbps": 9.63
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.0275,
+        "latency_ms_p5": 0.0269,
+        "latency_ms_p95": 0.038,
+        "throughput_gbps": 9.54
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 1.6657,
+        "latency_ms_p5": 1.5556,
+        "latency_ms_p95": 1.7277,
+        "throughput_gbps": 0.16
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 0.0852,
+        "latency_ms_p5": 0.0844,
+        "latency_ms_p95": 0.089,
+        "throughput_gbps": 3.08
+      },
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.0191,
+          "latency_ms_p5": 0.0187,
+          "latency_ms_p95": 0.0235
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 0.0189,
+          "latency_ms_p5": 0.0187,
+          "latency_ms_p95": 0.0203
+        }
+      }
+    },
+    {
+      "block_size_tokens": 1,
+      "batch_count": 4,
+      "format": "fp4",
+      "bytes_per_block": 32768,
+      "total_bytes": 131072,
+      "elements_per_block": 65536,
+      "hbm_copy": {
+        "latency_ms_median": 0.0161,
+        "latency_ms_p5": 0.0156,
+        "latency_ms_p95": 0.018,
+        "throughput_gbps": 8.14
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.025,
+        "latency_ms_p5": 0.0243,
+        "latency_ms_p95": 0.027,
+        "throughput_gbps": 5.25
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.0251,
+        "latency_ms_p5": 0.024,
+        "latency_ms_p95": 0.0264,
+        "throughput_gbps": 5.23
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 1.4735,
+        "latency_ms_p5": 1.4495,
+        "latency_ms_p95": 1.4906,
+        "throughput_gbps": 0.09
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 0.0623,
+        "latency_ms_p5": 0.0605,
+        "latency_ms_p95": 0.0647,
+        "throughput_gbps": 2.1
+      },
+      "cast_overhead": {
+        "pack_bf16_to_fp4": {
+          "latency_ms_median": 0.1617,
+          "latency_ms_p5": 0.1543,
+          "latency_ms_p95": 0.1812
+        },
+        "unpack_fp4_to_f32": {
+          "latency_ms_median": 0.136,
+          "latency_ms_p5": 0.1294,
+          "latency_ms_p95": 0.1767
+        }
+      }
+    },
+    {
+      "block_size_tokens": 1,
+      "batch_count": 16,
+      "format": "bf16",
+      "bytes_per_block": 131072,
+      "total_bytes": 2097152,
+      "elements_per_block": 65536,
+      "hbm_copy": {
+        "latency_ms_median": 0.0133,
+        "latency_ms_p5": 0.013,
+        "latency_ms_p95": 0.016,
+        "throughput_gbps": 157.73
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.0576,
+        "latency_ms_p5": 0.0571,
+        "latency_ms_p95": 0.0603,
+        "throughput_gbps": 36.41
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.0583,
+        "latency_ms_p5": 0.0574,
+        "latency_ms_p95": 0.063,
+        "throughput_gbps": 35.95
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 4.8226,
+        "latency_ms_p5": 4.7797,
+        "latency_ms_p95": 7.2865,
+        "throughput_gbps": 0.43
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 0.5759,
+        "latency_ms_p5": 0.5716,
+        "latency_ms_p95": 0.5806,
+        "throughput_gbps": 3.64
+      }
+    },
+    {
+      "block_size_tokens": 1,
+      "batch_count": 16,
+      "format": "fp8",
+      "bytes_per_block": 65536,
+      "total_bytes": 1048576,
+      "elements_per_block": 65536,
+      "hbm_copy": {
+        "latency_ms_median": 0.0168,
+        "latency_ms_p5": 0.0165,
+        "latency_ms_p95": 0.0203,
+        "throughput_gbps": 62.42
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.0402,
+        "latency_ms_p5": 0.0401,
+        "latency_ms_p95": 0.0427,
+        "throughput_gbps": 26.06
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.0412,
+        "latency_ms_p5": 0.0403,
+        "latency_ms_p95": 0.0497,
+        "throughput_gbps": 25.47
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 2.723,
+        "latency_ms_p5": 2.6606,
+        "latency_ms_p95": 4.0252,
+        "throughput_gbps": 0.39
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 0.3003,
+        "latency_ms_p5": 0.2819,
+        "latency_ms_p95": 0.3118,
+        "throughput_gbps": 3.49
+      },
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.0198,
+          "latency_ms_p5": 0.0186,
+          "latency_ms_p95": 0.0353
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 0.0189,
+          "latency_ms_p5": 0.0183,
+          "latency_ms_p95": 0.02
+        }
+      }
+    },
+    {
+      "block_size_tokens": 1,
+      "batch_count": 16,
+      "format": "fp4",
+      "bytes_per_block": 32768,
+      "total_bytes": 524288,
+      "elements_per_block": 65536,
+      "hbm_copy": {
+        "latency_ms_median": 0.016,
+        "latency_ms_p5": 0.0156,
+        "latency_ms_p95": 0.02,
+        "throughput_gbps": 32.74
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.0309,
+        "latency_ms_p5": 0.0305,
+        "latency_ms_p95": 0.0334,
+        "throughput_gbps": 16.99
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.0319,
+        "latency_ms_p5": 0.0306,
+        "latency_ms_p95": 0.0356,
+        "throughput_gbps": 16.44
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 1.8922,
+        "latency_ms_p5": 1.8789,
+        "latency_ms_p95": 1.9586,
+        "throughput_gbps": 0.28
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 0.154,
+        "latency_ms_p5": 0.1517,
+        "latency_ms_p95": 0.1808,
+        "throughput_gbps": 3.41
+      },
+      "cast_overhead": {
+        "pack_bf16_to_fp4": {
+          "latency_ms_median": 0.1644,
+          "latency_ms_p5": 0.1591,
+          "latency_ms_p95": 0.1836
+        },
+        "unpack_fp4_to_f32": {
+          "latency_ms_median": 0.1586,
+          "latency_ms_p5": 0.1292,
+          "latency_ms_p95": 0.1855
+        }
+      }
+    },
+    {
+      "block_size_tokens": 1,
+      "batch_count": 64,
+      "format": "bf16",
+      "bytes_per_block": 131072,
+      "total_bytes": 8388608,
+      "elements_per_block": 65536,
+      "hbm_copy": {
+        "latency_ms_median": 0.0136,
+        "latency_ms_p5": 0.013,
+        "latency_ms_p95": 0.0264,
+        "throughput_gbps": 614.64
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.167,
+        "latency_ms_p5": 0.1664,
+        "latency_ms_p95": 0.1705,
+        "throughput_gbps": 50.22
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.1716,
+        "latency_ms_p5": 0.1699,
+        "latency_ms_p95": 0.1739,
+        "throughput_gbps": 48.88
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 16.5614,
+        "latency_ms_p5": 16.4792,
+        "latency_ms_p95": 26.0353,
+        "throughput_gbps": 0.51
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 2.3078,
+        "latency_ms_p5": 2.2499,
+        "latency_ms_p95": 2.3095,
+        "throughput_gbps": 3.63
+      }
+    },
+    {
+      "block_size_tokens": 1,
+      "batch_count": 64,
+      "format": "fp8",
+      "bytes_per_block": 65536,
+      "total_bytes": 4194304,
+      "elements_per_block": 65536,
+      "hbm_copy": {
+        "latency_ms_median": 0.0163,
+        "latency_ms_p5": 0.0159,
+        "latency_ms_p95": 0.0195,
+        "throughput_gbps": 256.75
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.0958,
+        "latency_ms_p5": 0.0952,
+        "latency_ms_p95": 0.0978,
+        "throughput_gbps": 43.79
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.098,
+        "latency_ms_p5": 0.0969,
+        "latency_ms_p95": 0.1017,
+        "throughput_gbps": 42.79
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 8.6875,
+        "latency_ms_p5": 8.6648,
+        "latency_ms_p95": 13.1436,
+        "throughput_gbps": 0.48
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 1.1788,
+        "latency_ms_p5": 1.1651,
+        "latency_ms_p95": 1.2316,
+        "throughput_gbps": 3.56
+      },
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.0193,
+          "latency_ms_p5": 0.0184,
+          "latency_ms_p95": 0.0224
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 0.0232,
+          "latency_ms_p5": 0.0221,
+          "latency_ms_p95": 0.026
+        }
+      }
+    },
+    {
+      "block_size_tokens": 1,
+      "batch_count": 64,
+      "format": "fp4",
+      "bytes_per_block": 32768,
+      "total_bytes": 2097152,
+      "elements_per_block": 65536,
+      "hbm_copy": {
+        "latency_ms_median": 0.0166,
+        "latency_ms_p5": 0.0158,
+        "latency_ms_p95": 0.0194,
+        "throughput_gbps": 126.52
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.0591,
+        "latency_ms_p5": 0.0585,
+        "latency_ms_p95": 0.0616,
+        "throughput_gbps": 35.5
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.0603,
+        "latency_ms_p5": 0.0594,
+        "latency_ms_p95": 0.064,
+        "throughput_gbps": 34.76
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 4.6765,
+        "latency_ms_p5": 4.5996,
+        "latency_ms_p95": 6.9208,
+        "throughput_gbps": 0.45
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 0.5629,
+        "latency_ms_p5": 0.5601,
+        "latency_ms_p95": 0.5655,
+        "throughput_gbps": 3.73
+      },
+      "cast_overhead": {
+        "pack_bf16_to_fp4": {
+          "latency_ms_median": 0.1622,
+          "latency_ms_p5": 0.1577,
+          "latency_ms_p95": 0.1859
+        },
+        "unpack_fp4_to_f32": {
+          "latency_ms_median": 0.1415,
+          "latency_ms_p5": 0.1358,
+          "latency_ms_p95": 0.1837
+        }
+      }
+    },
+    {
+      "block_size_tokens": 1,
+      "batch_count": 256,
+      "format": "bf16",
+      "bytes_per_block": 131072,
+      "total_bytes": 33554432,
+      "elements_per_block": 65536,
+      "hbm_copy": {
+        "latency_ms_median": 0.0145,
+        "latency_ms_p5": 0.0135,
+        "latency_ms_p95": 0.0167,
+        "throughput_gbps": 2307.1
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.6091,
+        "latency_ms_p5": 0.6066,
+        "latency_ms_p95": 0.6105,
+        "throughput_gbps": 55.09
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.6261,
+        "latency_ms_p5": 0.6245,
+        "latency_ms_p95": 0.6302,
+        "throughput_gbps": 53.6
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 80.0292,
+        "latency_ms_p5": 79.8151,
+        "latency_ms_p95": 103.8864,
+        "throughput_gbps": 0.42
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 32.5905,
+        "latency_ms_p5": 32.5854,
+        "latency_ms_p95": 33.1767,
+        "throughput_gbps": 1.03
+      }
+    },
+    {
+      "block_size_tokens": 1,
+      "batch_count": 256,
+      "format": "fp8",
+      "bytes_per_block": 65536,
+      "total_bytes": 16777216,
+      "elements_per_block": 65536,
+      "hbm_copy": {
+        "latency_ms_median": 0.0167,
+        "latency_ms_p5": 0.0163,
+        "latency_ms_p95": 0.0201,
+        "throughput_gbps": 1002.46
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.3156,
+        "latency_ms_p5": 0.3134,
+        "latency_ms_p95": 0.3183,
+        "throughput_gbps": 53.15
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.3235,
+        "latency_ms_p5": 0.3219,
+        "latency_ms_p95": 0.3319,
+        "throughput_gbps": 51.87
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 32.5531,
+        "latency_ms_p5": 32.552,
+        "latency_ms_p95": 52.1268,
+        "throughput_gbps": 0.52
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 4.4215,
+        "latency_ms_p5": 4.3841,
+        "latency_ms_p95": 4.5108,
+        "throughput_gbps": 3.79
+      },
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.025,
+          "latency_ms_p5": 0.0245,
+          "latency_ms_p95": 0.0287
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 0.0515,
+          "latency_ms_p5": 0.051,
+          "latency_ms_p95": 0.0558
+        }
+      }
+    },
+    {
+      "block_size_tokens": 1,
+      "batch_count": 256,
+      "format": "fp4",
+      "bytes_per_block": 32768,
+      "total_bytes": 8388608,
+      "elements_per_block": 65536,
+      "hbm_copy": {
+        "latency_ms_median": 0.0162,
+        "latency_ms_p5": 0.0158,
+        "latency_ms_p95": 0.0227,
+        "throughput_gbps": 518.58
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.1667,
+        "latency_ms_p5": 0.166,
+        "latency_ms_p95": 0.178,
+        "throughput_gbps": 50.33
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.1718,
+        "latency_ms_p5": 0.1702,
+        "latency_ms_p95": 0.1751,
+        "throughput_gbps": 48.84
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 16.7521,
+        "latency_ms_p5": 16.5966,
+        "latency_ms_p95": 26.1916,
+        "throughput_gbps": 0.5
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 2.1876,
+        "latency_ms_p5": 2.1735,
+        "latency_ms_p95": 2.2908,
+        "throughput_gbps": 3.83
+      },
+      "cast_overhead": {
+        "pack_bf16_to_fp4": {
+          "latency_ms_median": 0.3606,
+          "latency_ms_p5": 0.3576,
+          "latency_ms_p95": 0.3638
+        },
+        "unpack_fp4_to_f32": {
+          "latency_ms_median": 0.2726,
+          "latency_ms_p5": 0.2695,
+          "latency_ms_p95": 0.2847
+        }
+      }
+    },
+    {
+      "block_size_tokens": 16,
+      "batch_count": 1,
+      "format": "bf16",
+      "bytes_per_block": 2097152,
+      "total_bytes": 2097152,
+      "elements_per_block": 1048576,
+      "hbm_copy": {
+        "latency_ms_median": 0.0128,
+        "latency_ms_p5": 0.0121,
+        "latency_ms_p95": 0.0166,
+        "throughput_gbps": 163.23
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.0563,
+        "latency_ms_p5": 0.0559,
+        "latency_ms_p95": 0.0578,
+        "throughput_gbps": 37.25
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.0576,
+        "latency_ms_p5": 0.0565,
+        "latency_ms_p95": 0.0607,
+        "throughput_gbps": 36.42
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 4.584,
+        "latency_ms_p5": 4.5721,
+        "latency_ms_p95": 7.0558,
+        "throughput_gbps": 0.46
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 0.5611,
+        "latency_ms_p5": 0.5508,
+        "latency_ms_p95": 0.5697,
+        "throughput_gbps": 3.74
+      }
+    },
+    {
+      "block_size_tokens": 16,
+      "batch_count": 1,
+      "format": "fp8",
+      "bytes_per_block": 1048576,
+      "total_bytes": 1048576,
+      "elements_per_block": 1048576,
+      "hbm_copy": {
+        "latency_ms_median": 0.017,
+        "latency_ms_p5": 0.016,
+        "latency_ms_p95": 0.0358,
+        "throughput_gbps": 61.54
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.0405,
+        "latency_ms_p5": 0.0401,
+        "latency_ms_p95": 0.0428,
+        "throughput_gbps": 25.87
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.0411,
+        "latency_ms_p5": 0.0402,
+        "latency_ms_p95": 0.042,
+        "throughput_gbps": 25.5
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 2.5677,
+        "latency_ms_p5": 2.5621,
+        "latency_ms_p95": 3.8992,
+        "throughput_gbps": 0.41
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 0.3118,
+        "latency_ms_p5": 0.2918,
+        "latency_ms_p95": 0.3473,
+        "throughput_gbps": 3.36
+      },
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.0189,
+          "latency_ms_p5": 0.0185,
+          "latency_ms_p95": 0.0241
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 0.0189,
+          "latency_ms_p5": 0.0185,
+          "latency_ms_p95": 0.0199
+        }
+      }
+    },
+    {
+      "block_size_tokens": 16,
+      "batch_count": 1,
+      "format": "fp4",
+      "bytes_per_block": 524288,
+      "total_bytes": 524288,
+      "elements_per_block": 1048576,
+      "hbm_copy": {
+        "latency_ms_median": 0.0158,
+        "latency_ms_p5": 0.0153,
+        "latency_ms_p95": 0.0286,
+        "throughput_gbps": 33.17
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.0308,
+        "latency_ms_p5": 0.0304,
+        "latency_ms_p95": 0.0337,
+        "throughput_gbps": 17.04
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.031,
+        "latency_ms_p5": 0.03,
+        "latency_ms_p95": 0.0349,
+        "throughput_gbps": 16.93
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 1.6976,
+        "latency_ms_p5": 1.6386,
+        "latency_ms_p95": 1.7594,
+        "throughput_gbps": 0.31
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 0.1548,
+        "latency_ms_p5": 0.1518,
+        "latency_ms_p95": 0.1942,
+        "throughput_gbps": 3.39
+      },
+      "cast_overhead": {
+        "pack_bf16_to_fp4": {
+          "latency_ms_median": 0.1604,
+          "latency_ms_p5": 0.1531,
+          "latency_ms_p95": 0.1882
+        },
+        "unpack_fp4_to_f32": {
+          "latency_ms_median": 0.1566,
+          "latency_ms_p5": 0.1254,
+          "latency_ms_p95": 0.1906
+        }
+      }
+    },
+    {
+      "block_size_tokens": 16,
+      "batch_count": 4,
+      "format": "bf16",
+      "bytes_per_block": 2097152,
+      "total_bytes": 8388608,
+      "elements_per_block": 1048576,
+      "hbm_copy": {
+        "latency_ms_median": 0.0129,
+        "latency_ms_p5": 0.0122,
+        "latency_ms_p95": 0.015,
+        "throughput_gbps": 651.29
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.1677,
+        "latency_ms_p5": 0.1663,
+        "latency_ms_p95": 0.1709,
+        "throughput_gbps": 50.02
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.1712,
+        "latency_ms_p5": 0.1709,
+        "latency_ms_p95": 0.1821,
+        "throughput_gbps": 49.01
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 16.6128,
+        "latency_ms_p5": 16.5147,
+        "latency_ms_p95": 26.1064,
+        "throughput_gbps": 0.5
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 2.4091,
+        "latency_ms_p5": 2.283,
+        "latency_ms_p95": 2.4463,
+        "throughput_gbps": 3.48
+      }
+    },
+    {
+      "block_size_tokens": 16,
+      "batch_count": 4,
+      "format": "fp8",
+      "bytes_per_block": 1048576,
+      "total_bytes": 4194304,
+      "elements_per_block": 1048576,
+      "hbm_copy": {
+        "latency_ms_median": 0.0161,
+        "latency_ms_p5": 0.0158,
+        "latency_ms_p95": 0.0308,
+        "throughput_gbps": 260.06
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.0956,
+        "latency_ms_p5": 0.095,
+        "latency_ms_p95": 0.0999,
+        "throughput_gbps": 43.85
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.0981,
+        "latency_ms_p5": 0.0964,
+        "latency_ms_p95": 0.1021,
+        "throughput_gbps": 42.74
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 8.7124,
+        "latency_ms_p5": 8.5989,
+        "latency_ms_p95": 13.2489,
+        "throughput_gbps": 0.48
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 1.1918,
+        "latency_ms_p5": 1.1206,
+        "latency_ms_p95": 1.2721,
+        "throughput_gbps": 3.52
+      },
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.0186,
+          "latency_ms_p5": 0.0181,
+          "latency_ms_p95": 0.022
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 0.0232,
+          "latency_ms_p5": 0.0219,
+          "latency_ms_p95": 0.0335
+        }
+      }
+    },
+    {
+      "block_size_tokens": 16,
+      "batch_count": 4,
+      "format": "fp4",
+      "bytes_per_block": 524288,
+      "total_bytes": 2097152,
+      "elements_per_block": 1048576,
+      "hbm_copy": {
+        "latency_ms_median": 0.0162,
+        "latency_ms_p5": 0.0155,
+        "latency_ms_p95": 0.0178,
+        "throughput_gbps": 129.52
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.0587,
+        "latency_ms_p5": 0.0584,
+        "latency_ms_p95": 0.0618,
+        "throughput_gbps": 35.72
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.06,
+        "latency_ms_p5": 0.059,
+        "latency_ms_p95": 0.0693,
+        "throughput_gbps": 34.97
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 4.6678,
+        "latency_ms_p5": 4.6392,
+        "latency_ms_p95": 7.0871,
+        "throughput_gbps": 0.45
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 0.557,
+        "latency_ms_p5": 0.548,
+        "latency_ms_p95": 0.5604,
+        "throughput_gbps": 3.77
+      },
+      "cast_overhead": {
+        "pack_bf16_to_fp4": {
+          "latency_ms_median": 0.1596,
+          "latency_ms_p5": 0.1528,
+          "latency_ms_p95": 0.1935
+        },
+        "unpack_fp4_to_f32": {
+          "latency_ms_median": 0.1459,
+          "latency_ms_p5": 0.1315,
+          "latency_ms_p95": 0.1847
+        }
+      }
+    },
+    {
+      "block_size_tokens": 16,
+      "batch_count": 16,
+      "format": "bf16",
+      "bytes_per_block": 2097152,
+      "total_bytes": 33554432,
+      "elements_per_block": 1048576,
+      "hbm_copy": {
+        "latency_ms_median": 0.0148,
+        "latency_ms_p5": 0.0138,
+        "latency_ms_p95": 0.0172,
+        "throughput_gbps": 2269.64
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.608,
+        "latency_ms_p5": 0.6055,
+        "latency_ms_p95": 0.6113,
+        "throughput_gbps": 55.19
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.6278,
+        "latency_ms_p5": 0.6249,
+        "latency_ms_p95": 0.6366,
+        "throughput_gbps": 53.44
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 79.4736,
+        "latency_ms_p5": 79.4587,
+        "latency_ms_p95": 104.4802,
+        "throughput_gbps": 0.42
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 32.6127,
+        "latency_ms_p5": 32.3826,
+        "latency_ms_p95": 33.2034,
+        "throughput_gbps": 1.03
+      }
+    },
+    {
+      "block_size_tokens": 16,
+      "batch_count": 16,
+      "format": "fp8",
+      "bytes_per_block": 1048576,
+      "total_bytes": 16777216,
+      "elements_per_block": 1048576,
+      "hbm_copy": {
+        "latency_ms_median": 0.0166,
+        "latency_ms_p5": 0.0162,
+        "latency_ms_p95": 0.0264,
+        "throughput_gbps": 1012.14
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.3165,
+        "latency_ms_p5": 0.3122,
+        "latency_ms_p95": 0.3194,
+        "throughput_gbps": 53.01
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.323,
+        "latency_ms_p5": 0.3218,
+        "latency_ms_p95": 0.327,
+        "throughput_gbps": 51.95
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 32.3871,
+        "latency_ms_p5": 32.3306,
+        "latency_ms_p95": 52.07,
+        "throughput_gbps": 0.52
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 4.5755,
+        "latency_ms_p5": 4.5037,
+        "latency_ms_p95": 4.6056,
+        "throughput_gbps": 3.67
+      },
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.025,
+          "latency_ms_p5": 0.0246,
+          "latency_ms_p95": 0.0283
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 0.0511,
+          "latency_ms_p5": 0.0499,
+          "latency_ms_p95": 0.0639
+        }
+      }
+    },
+    {
+      "block_size_tokens": 16,
+      "batch_count": 16,
+      "format": "fp4",
+      "bytes_per_block": 524288,
+      "total_bytes": 8388608,
+      "elements_per_block": 1048576,
+      "hbm_copy": {
+        "latency_ms_median": 0.0164,
+        "latency_ms_p5": 0.016,
+        "latency_ms_p95": 0.0189,
+        "throughput_gbps": 511.0
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.1669,
+        "latency_ms_p5": 0.166,
+        "latency_ms_p95": 0.1712,
+        "throughput_gbps": 50.26
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.1709,
+        "latency_ms_p5": 0.1699,
+        "latency_ms_p95": 0.1737,
+        "throughput_gbps": 49.07
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 16.6517,
+        "latency_ms_p5": 16.64,
+        "latency_ms_p95": 26.1842,
+        "throughput_gbps": 0.5
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 2.2391,
+        "latency_ms_p5": 2.2282,
+        "latency_ms_p95": 2.2581,
+        "throughput_gbps": 3.75
+      },
+      "cast_overhead": {
+        "pack_bf16_to_fp4": {
+          "latency_ms_median": 0.3629,
+          "latency_ms_p5": 0.358,
+          "latency_ms_p95": 0.365
+        },
+        "unpack_fp4_to_f32": {
+          "latency_ms_median": 0.2713,
+          "latency_ms_p5": 0.2692,
+          "latency_ms_p95": 0.2859
+        }
+      }
+    },
+    {
+      "block_size_tokens": 16,
+      "batch_count": 64,
+      "format": "bf16",
+      "bytes_per_block": 2097152,
+      "total_bytes": 134217728,
+      "elements_per_block": 1048576,
+      "hbm_copy": {
+        "latency_ms_median": 0.0506,
+        "latency_ms_p5": 0.0496,
+        "latency_ms_p95": 0.0523,
+        "throughput_gbps": 2650.43
+      },
+      "offload_to_host": {
+        "latency_ms_median": 2.3738,
+        "latency_ms_p5": 2.372,
+        "latency_ms_p95": 2.6192,
+        "throughput_gbps": 56.54
+      },
+      "restore_from_host": {
+        "latency_ms_median": 2.4378,
+        "latency_ms_p5": 2.4364,
+        "latency_ms_p95": 2.4434,
+        "throughput_gbps": 55.06
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 257.7555,
+        "latency_ms_p5": 257.7243,
+        "latency_ms_p95": 257.8105,
+        "throughput_gbps": 0.52
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 141.2722,
+        "latency_ms_p5": 140.8809,
+        "latency_ms_p95": 142.287,
+        "throughput_gbps": 0.95
+      }
+    },
+    {
+      "block_size_tokens": 16,
+      "batch_count": 64,
+      "format": "fp8",
+      "bytes_per_block": 1048576,
+      "total_bytes": 67108864,
+      "elements_per_block": 1048576,
+      "hbm_copy": {
+        "latency_ms_median": 0.0303,
+        "latency_ms_p5": 0.0293,
+        "latency_ms_p95": 0.0341,
+        "throughput_gbps": 2212.19
+      },
+      "offload_to_host": {
+        "latency_ms_median": 1.1951,
+        "latency_ms_p5": 1.1942,
+        "latency_ms_p95": 1.1986,
+        "throughput_gbps": 56.15
+      },
+      "restore_from_host": {
+        "latency_ms_median": 1.2313,
+        "latency_ms_p5": 1.2301,
+        "latency_ms_p95": 1.233,
+        "throughput_gbps": 54.5
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 159.3658,
+        "latency_ms_p5": 159.0103,
+        "latency_ms_p95": 176.3717,
+        "throughput_gbps": 0.42
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 65.8999,
+        "latency_ms_p5": 65.763,
+        "latency_ms_p95": 66.1237,
+        "throughput_gbps": 1.02
+      },
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.0641,
+          "latency_ms_p5": 0.0622,
+          "latency_ms_p95": 0.0682
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 0.1996,
+          "latency_ms_p5": 0.1984,
+          "latency_ms_p95": 0.2039
+        }
+      }
+    },
+    {
+      "block_size_tokens": 16,
+      "batch_count": 64,
+      "format": "fp4",
+      "bytes_per_block": 524288,
+      "total_bytes": 33554432,
+      "elements_per_block": 1048576,
+      "hbm_copy": {
+        "latency_ms_median": 0.0146,
+        "latency_ms_p5": 0.0138,
+        "latency_ms_p95": 0.0163,
+        "throughput_gbps": 2302.03
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.609,
+        "latency_ms_p5": 0.6062,
+        "latency_ms_p95": 0.6136,
+        "throughput_gbps": 55.1
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.6265,
+        "latency_ms_p5": 0.6244,
+        "latency_ms_p95": 0.6285,
+        "throughput_gbps": 53.56
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 79.5979,
+        "latency_ms_p5": 79.4548,
+        "latency_ms_p95": 104.3402,
+        "throughput_gbps": 0.42
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 32.2049,
+        "latency_ms_p5": 31.9806,
+        "latency_ms_p95": 32.6038,
+        "throughput_gbps": 1.04
+      },
+      "cast_overhead": {
+        "pack_bf16_to_fp4": {
+          "latency_ms_median": 1.3985,
+          "latency_ms_p5": 1.3966,
+          "latency_ms_p95": 1.4012
+        },
+        "unpack_fp4_to_f32": {
+          "latency_ms_median": 0.9762,
+          "latency_ms_p5": 0.9741,
+          "latency_ms_p95": 0.9779
+        }
+      }
+    },
+    {
+      "block_size_tokens": 16,
+      "batch_count": 256,
+      "format": "bf16",
+      "bytes_per_block": 2097152,
+      "total_bytes": 536870912,
+      "elements_per_block": 1048576,
+      "hbm_copy": {
+        "latency_ms_median": 0.1768,
+        "latency_ms_p5": 0.1758,
+        "latency_ms_p95": 0.1788,
+        "throughput_gbps": 3037.42
+      },
+      "offload_to_host": {
+        "latency_ms_median": 9.4052,
+        "latency_ms_p5": 9.4033,
+        "latency_ms_p95": 9.4127,
+        "throughput_gbps": 57.08
+      },
+      "restore_from_host": {
+        "latency_ms_median": 9.6759,
+        "latency_ms_p5": 9.6737,
+        "latency_ms_p95": 9.6774,
+        "throughput_gbps": 55.49
+      },
+      "offload_to_disk": "skipped_too_large",
+      "restore_from_disk": "skipped_too_large"
+    },
+    {
+      "block_size_tokens": 16,
+      "batch_count": 256,
+      "format": "fp8",
+      "bytes_per_block": 1048576,
+      "total_bytes": 268435456,
+      "elements_per_block": 1048576,
+      "hbm_copy": {
+        "latency_ms_median": 0.091,
+        "latency_ms_p5": 0.0899,
+        "latency_ms_p95": 0.0933,
+        "throughput_gbps": 2950.62
+      },
+      "offload_to_host": {
+        "latency_ms_median": 4.7122,
+        "latency_ms_p5": 4.71,
+        "latency_ms_p95": 4.7193,
+        "throughput_gbps": 56.97
+      },
+      "restore_from_host": {
+        "latency_ms_median": 4.851,
+        "latency_ms_p5": 4.8497,
+        "latency_ms_p95": 4.8584,
+        "throughput_gbps": 55.34
+      },
+      "offload_to_disk": "skipped_too_large",
+      "restore_from_disk": "skipped_too_large",
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.2177,
+          "latency_ms_p5": 0.2165,
+          "latency_ms_p95": 0.2225
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 0.7676,
+          "latency_ms_p5": 0.7634,
+          "latency_ms_p95": 0.7686
+        }
+      }
+    },
+    {
+      "block_size_tokens": 16,
+      "batch_count": 256,
+      "format": "fp4",
+      "bytes_per_block": 524288,
+      "total_bytes": 134217728,
+      "elements_per_block": 1048576,
+      "hbm_copy": {
+        "latency_ms_median": 0.0503,
+        "latency_ms_p5": 0.0493,
+        "latency_ms_p95": 0.0532,
+        "throughput_gbps": 2668.98
+      },
+      "offload_to_host": {
+        "latency_ms_median": 2.3643,
+        "latency_ms_p5": 2.3636,
+        "latency_ms_p95": 2.3732,
+        "throughput_gbps": 56.77
+      },
+      "restore_from_host": {
+        "latency_ms_median": 2.4379,
+        "latency_ms_p5": 2.4365,
+        "latency_ms_p95": 2.4415,
+        "throughput_gbps": 55.05
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 257.7706,
+        "latency_ms_p5": 257.5096,
+        "latency_ms_p95": 258.2639,
+        "throughput_gbps": 0.52
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 141.7099,
+        "latency_ms_p5": 141.5641,
+        "latency_ms_p95": 142.2602,
+        "throughput_gbps": 0.95
+      }
+    },
+    {
+      "block_size_tokens": 64,
+      "batch_count": 1,
+      "format": "bf16",
+      "bytes_per_block": 8388608,
+      "total_bytes": 8388608,
+      "elements_per_block": 4194304,
+      "hbm_copy": {
+        "latency_ms_median": 0.0137,
+        "latency_ms_p5": 0.0132,
+        "latency_ms_p95": 0.0218,
+        "throughput_gbps": 610.35
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.1664,
+        "latency_ms_p5": 0.1662,
+        "latency_ms_p95": 0.1785,
+        "throughput_gbps": 50.42
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.1712,
+        "latency_ms_p5": 0.1697,
+        "latency_ms_p95": 0.18,
+        "throughput_gbps": 49.0
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 16.8602,
+        "latency_ms_p5": 16.8451,
+        "latency_ms_p95": 26.5884,
+        "throughput_gbps": 0.5
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 2.2717,
+        "latency_ms_p5": 2.2464,
+        "latency_ms_p95": 2.4026,
+        "throughput_gbps": 3.69
+      }
+    },
+    {
+      "block_size_tokens": 64,
+      "batch_count": 1,
+      "format": "fp8",
+      "bytes_per_block": 4194304,
+      "total_bytes": 4194304,
+      "elements_per_block": 4194304,
+      "hbm_copy": {
+        "latency_ms_median": 0.0167,
+        "latency_ms_p5": 0.0157,
+        "latency_ms_p95": 0.0214,
+        "throughput_gbps": 251.1
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.0957,
+        "latency_ms_p5": 0.0945,
+        "latency_ms_p95": 0.0999,
+        "throughput_gbps": 43.83
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.098,
+        "latency_ms_p5": 0.0972,
+        "latency_ms_p95": 0.1087,
+        "throughput_gbps": 42.78
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 8.9958,
+        "latency_ms_p5": 8.8922,
+        "latency_ms_p95": 13.6128,
+        "throughput_gbps": 0.47
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 1.2067,
+        "latency_ms_p5": 1.14,
+        "latency_ms_p95": 1.229,
+        "throughput_gbps": 3.48
+      },
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.0192,
+          "latency_ms_p5": 0.0185,
+          "latency_ms_p95": 0.0229
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 0.0228,
+          "latency_ms_p5": 0.0226,
+          "latency_ms_p95": 0.0236
+        }
+      }
+    },
+    {
+      "block_size_tokens": 64,
+      "batch_count": 1,
+      "format": "fp4",
+      "bytes_per_block": 2097152,
+      "total_bytes": 2097152,
+      "elements_per_block": 4194304,
+      "hbm_copy": {
+        "latency_ms_median": 0.0164,
+        "latency_ms_p5": 0.016,
+        "latency_ms_p95": 0.0199,
+        "throughput_gbps": 128.0
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.0587,
+        "latency_ms_p5": 0.0584,
+        "latency_ms_p95": 0.0632,
+        "throughput_gbps": 35.71
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.0605,
+        "latency_ms_p5": 0.0596,
+        "latency_ms_p95": 0.0707,
+        "throughput_gbps": 34.64
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 4.7559,
+        "latency_ms_p5": 4.7455,
+        "latency_ms_p95": 7.0999,
+        "throughput_gbps": 0.44
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 0.5414,
+        "latency_ms_p5": 0.5412,
+        "latency_ms_p95": 0.5501,
+        "throughput_gbps": 3.87
+      },
+      "cast_overhead": {
+        "pack_bf16_to_fp4": {
+          "latency_ms_median": 0.1665,
+          "latency_ms_p5": 0.1577,
+          "latency_ms_p95": 0.1816
+        },
+        "unpack_fp4_to_f32": {
+          "latency_ms_median": 0.1366,
+          "latency_ms_p5": 0.1312,
+          "latency_ms_p95": 0.1665
+        }
+      }
+    },
+    {
+      "block_size_tokens": 64,
+      "batch_count": 4,
+      "format": "bf16",
+      "bytes_per_block": 8388608,
+      "total_bytes": 33554432,
+      "elements_per_block": 4194304,
+      "hbm_copy": {
+        "latency_ms_median": 0.0144,
+        "latency_ms_p5": 0.0135,
+        "latency_ms_p95": 0.0259,
+        "throughput_gbps": 2337.96
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.61,
+        "latency_ms_p5": 0.6067,
+        "latency_ms_p95": 0.6112,
+        "throughput_gbps": 55.0
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.6276,
+        "latency_ms_p5": 0.624,
+        "latency_ms_p95": 0.6293,
+        "throughput_gbps": 53.47
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 81.806,
+        "latency_ms_p5": 80.4565,
+        "latency_ms_p95": 105.3452,
+        "throughput_gbps": 0.41
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 32.3422,
+        "latency_ms_p5": 32.2387,
+        "latency_ms_p95": 33.737,
+        "throughput_gbps": 1.04
+      }
+    },
+    {
+      "block_size_tokens": 64,
+      "batch_count": 4,
+      "format": "fp8",
+      "bytes_per_block": 4194304,
+      "total_bytes": 16777216,
+      "elements_per_block": 4194304,
+      "hbm_copy": {
+        "latency_ms_median": 0.0165,
+        "latency_ms_p5": 0.0162,
+        "latency_ms_p95": 0.0196,
+        "throughput_gbps": 1016.06
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.3152,
+        "latency_ms_p5": 0.313,
+        "latency_ms_p95": 0.3192,
+        "throughput_gbps": 53.23
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.3231,
+        "latency_ms_p5": 0.3219,
+        "latency_ms_p95": 0.3266,
+        "throughput_gbps": 51.93
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 33.122,
+        "latency_ms_p5": 32.8064,
+        "latency_ms_p95": 50.8176,
+        "throughput_gbps": 0.51
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 4.4008,
+        "latency_ms_p5": 4.4008,
+        "latency_ms_p95": 4.4484,
+        "throughput_gbps": 3.81
+      },
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.0257,
+          "latency_ms_p5": 0.0246,
+          "latency_ms_p95": 0.0364
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 0.0516,
+          "latency_ms_p5": 0.0511,
+          "latency_ms_p95": 0.053
+        }
+      }
+    },
+    {
+      "block_size_tokens": 64,
+      "batch_count": 4,
+      "format": "fp4",
+      "bytes_per_block": 2097152,
+      "total_bytes": 8388608,
+      "elements_per_block": 4194304,
+      "hbm_copy": {
+        "latency_ms_median": 0.0164,
+        "latency_ms_p5": 0.0158,
+        "latency_ms_p95": 0.0194,
+        "throughput_gbps": 512.5
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.1662,
+        "latency_ms_p5": 0.1661,
+        "latency_ms_p95": 0.1715,
+        "throughput_gbps": 50.47
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.1716,
+        "latency_ms_p5": 0.1703,
+        "latency_ms_p95": 0.1832,
+        "throughput_gbps": 48.88
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 17.1884,
+        "latency_ms_p5": 17.0319,
+        "latency_ms_p95": 26.4606,
+        "throughput_gbps": 0.49
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 2.3288,
+        "latency_ms_p5": 2.218,
+        "latency_ms_p95": 2.4663,
+        "throughput_gbps": 3.6
+      },
+      "cast_overhead": {
+        "pack_bf16_to_fp4": {
+          "latency_ms_median": 0.3608,
+          "latency_ms_p5": 0.3579,
+          "latency_ms_p95": 0.3635
+        },
+        "unpack_fp4_to_f32": {
+          "latency_ms_median": 0.2724,
+          "latency_ms_p5": 0.2687,
+          "latency_ms_p95": 0.2804
+        }
+      }
+    },
+    {
+      "block_size_tokens": 64,
+      "batch_count": 16,
+      "format": "bf16",
+      "bytes_per_block": 8388608,
+      "total_bytes": 134217728,
+      "elements_per_block": 4194304,
+      "hbm_copy": {
+        "latency_ms_median": 0.0497,
+        "latency_ms_p5": 0.049,
+        "latency_ms_p95": 0.0525,
+        "throughput_gbps": 2701.65
+      },
+      "offload_to_host": {
+        "latency_ms_median": 2.3716,
+        "latency_ms_p5": 2.3697,
+        "latency_ms_p95": 2.3756,
+        "throughput_gbps": 56.59
+      },
+      "restore_from_host": {
+        "latency_ms_median": 2.4382,
+        "latency_ms_p5": 2.436,
+        "latency_ms_p95": 2.4417,
+        "throughput_gbps": 55.05
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 258.7136,
+        "latency_ms_p5": 258.2497,
+        "latency_ms_p95": 259.594,
+        "throughput_gbps": 0.52
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 149.5571,
+        "latency_ms_p5": 147.3116,
+        "latency_ms_p95": 151.3323,
+        "throughput_gbps": 0.9
+      }
+    },
+    {
+      "block_size_tokens": 64,
+      "batch_count": 16,
+      "format": "fp8",
+      "bytes_per_block": 4194304,
+      "total_bytes": 67108864,
+      "elements_per_block": 4194304,
+      "hbm_copy": {
+        "latency_ms_median": 0.0296,
+        "latency_ms_p5": 0.0289,
+        "latency_ms_p95": 0.0336,
+        "throughput_gbps": 2269.65
+      },
+      "offload_to_host": {
+        "latency_ms_median": 1.1985,
+        "latency_ms_p5": 1.194,
+        "latency_ms_p95": 1.2013,
+        "throughput_gbps": 55.99
+      },
+      "restore_from_host": {
+        "latency_ms_median": 1.2318,
+        "latency_ms_p5": 1.2306,
+        "latency_ms_p95": 1.2345,
+        "throughput_gbps": 54.48
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 159.4439,
+        "latency_ms_p5": 159.2382,
+        "latency_ms_p95": 176.4149,
+        "throughput_gbps": 0.42
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 67.3169,
+        "latency_ms_p5": 66.7969,
+        "latency_ms_p95": 67.4428,
+        "throughput_gbps": 1.0
+      },
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.063,
+          "latency_ms_p5": 0.0624,
+          "latency_ms_p95": 0.0687
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 0.2001,
+          "latency_ms_p5": 0.1994,
+          "latency_ms_p95": 0.2053
+        }
+      }
+    },
+    {
+      "block_size_tokens": 64,
+      "batch_count": 16,
+      "format": "fp4",
+      "bytes_per_block": 2097152,
+      "total_bytes": 33554432,
+      "elements_per_block": 4194304,
+      "hbm_copy": {
+        "latency_ms_median": 0.0147,
+        "latency_ms_p5": 0.0134,
+        "latency_ms_p95": 0.0163,
+        "throughput_gbps": 2281.99
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.6091,
+        "latency_ms_p5": 0.6057,
+        "latency_ms_p95": 0.6124,
+        "throughput_gbps": 55.09
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.6276,
+        "latency_ms_p5": 0.624,
+        "latency_ms_p95": 0.6295,
+        "throughput_gbps": 53.46
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 80.0461,
+        "latency_ms_p5": 79.8798,
+        "latency_ms_p95": 105.0422,
+        "throughput_gbps": 0.42
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 33.508,
+        "latency_ms_p5": 32.8463,
+        "latency_ms_p95": 33.7529,
+        "throughput_gbps": 1.0
+      },
+      "cast_overhead": {
+        "pack_bf16_to_fp4": {
+          "latency_ms_median": 1.3983,
+          "latency_ms_p5": 1.397,
+          "latency_ms_p95": 1.4012
+        },
+        "unpack_fp4_to_f32": {
+          "latency_ms_median": 0.9753,
+          "latency_ms_p5": 0.9739,
+          "latency_ms_p95": 0.979
+        }
+      }
+    },
+    {
+      "block_size_tokens": 64,
+      "batch_count": 64,
+      "format": "bf16",
+      "bytes_per_block": 8388608,
+      "total_bytes": 536870912,
+      "elements_per_block": 4194304,
+      "hbm_copy": {
+        "latency_ms_median": 0.1765,
+        "latency_ms_p5": 0.1756,
+        "latency_ms_p95": 0.1788,
+        "throughput_gbps": 3041.0
+      },
+      "offload_to_host": {
+        "latency_ms_median": 9.4099,
+        "latency_ms_p5": 9.4026,
+        "latency_ms_p95": 9.4173,
+        "throughput_gbps": 57.05
+      },
+      "restore_from_host": {
+        "latency_ms_median": 9.6766,
+        "latency_ms_p5": 9.6736,
+        "latency_ms_p95": 9.6786,
+        "throughput_gbps": 55.48
+      },
+      "offload_to_disk": "skipped_too_large",
+      "restore_from_disk": "skipped_too_large"
+    },
+    {
+      "block_size_tokens": 64,
+      "batch_count": 64,
+      "format": "fp8",
+      "bytes_per_block": 4194304,
+      "total_bytes": 268435456,
+      "elements_per_block": 4194304,
+      "hbm_copy": {
+        "latency_ms_median": 0.0906,
+        "latency_ms_p5": 0.0893,
+        "latency_ms_p95": 0.0924,
+        "throughput_gbps": 2964.17
+      },
+      "offload_to_host": {
+        "latency_ms_median": 4.7174,
+        "latency_ms_p5": 4.7109,
+        "latency_ms_p95": 4.72,
+        "throughput_gbps": 56.9
+      },
+      "restore_from_host": {
+        "latency_ms_median": 4.8509,
+        "latency_ms_p5": 4.8477,
+        "latency_ms_p95": 4.8545,
+        "throughput_gbps": 55.34
+      },
+      "offload_to_disk": "skipped_too_large",
+      "restore_from_disk": "skipped_too_large",
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.2178,
+          "latency_ms_p5": 0.2162,
+          "latency_ms_p95": 0.2216
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 0.7672,
+          "latency_ms_p5": 0.7629,
+          "latency_ms_p95": 0.7683
+        }
+      }
+    },
+    {
+      "block_size_tokens": 64,
+      "batch_count": 64,
+      "format": "fp4",
+      "bytes_per_block": 2097152,
+      "total_bytes": 134217728,
+      "elements_per_block": 4194304,
+      "hbm_copy": {
+        "latency_ms_median": 0.0498,
+        "latency_ms_p5": 0.0488,
+        "latency_ms_p95": 0.0601,
+        "throughput_gbps": 2692.97
+      },
+      "offload_to_host": {
+        "latency_ms_median": 2.3666,
+        "latency_ms_p5": 2.3643,
+        "latency_ms_p95": 2.3691,
+        "throughput_gbps": 56.71
+      },
+      "restore_from_host": {
+        "latency_ms_median": 2.4383,
+        "latency_ms_p5": 2.436,
+        "latency_ms_p95": 2.4411,
+        "throughput_gbps": 55.05
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 258.4738,
+        "latency_ms_p5": 258.1151,
+        "latency_ms_p95": 259.8806,
+        "throughput_gbps": 0.52
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 142.7714,
+        "latency_ms_p5": 142.6265,
+        "latency_ms_p95": 142.9792,
+        "throughput_gbps": 0.94
+      }
+    },
+    {
+      "block_size_tokens": 64,
+      "batch_count": 256,
+      "format": "bf16",
+      "bytes_per_block": 8388608,
+      "total_bytes": 2147483648,
+      "elements_per_block": 4194304,
+      "hbm_copy": {
+        "latency_ms_median": 0.6675,
+        "latency_ms_p5": 0.6658,
+        "latency_ms_p95": 0.6692,
+        "throughput_gbps": 3217.18
+      },
+      "offload_to_host": {
+        "latency_ms_median": 37.5676,
+        "latency_ms_p5": 37.5642,
+        "latency_ms_p95": 37.5739,
+        "throughput_gbps": 57.16
+      },
+      "restore_from_host": {
+        "latency_ms_median": 38.6284,
+        "latency_ms_p5": 38.6205,
+        "latency_ms_p95": 38.6373,
+        "throughput_gbps": 55.59
+      },
+      "offload_to_disk": "skipped_too_large",
+      "restore_from_disk": "skipped_too_large"
+    },
+    {
+      "block_size_tokens": 64,
+      "batch_count": 256,
+      "format": "fp8",
+      "bytes_per_block": 4194304,
+      "total_bytes": 1073741824,
+      "elements_per_block": 4194304,
+      "hbm_copy": {
+        "latency_ms_median": 0.3412,
+        "latency_ms_p5": 0.3385,
+        "latency_ms_p95": 0.3422,
+        "throughput_gbps": 3146.81
+      },
+      "offload_to_host": {
+        "latency_ms_median": 18.7988,
+        "latency_ms_p5": 18.7964,
+        "latency_ms_p95": 18.8993,
+        "throughput_gbps": 57.12
+      },
+      "restore_from_host": {
+        "latency_ms_median": 19.3282,
+        "latency_ms_p5": 19.3261,
+        "latency_ms_p95": 19.3358,
+        "throughput_gbps": 55.55
+      },
+      "offload_to_disk": "skipped_too_large",
+      "restore_from_disk": "skipped_too_large",
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.8374,
+          "latency_ms_p5": 0.8346,
+          "latency_ms_p95": 0.8393
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 3.0237,
+          "latency_ms_p5": 3.0223,
+          "latency_ms_p95": 3.0257
+        }
+      }
+    },
+    {
+      "block_size_tokens": 64,
+      "batch_count": 256,
+      "format": "fp4",
+      "bytes_per_block": 2097152,
+      "total_bytes": 536870912,
+      "elements_per_block": 4194304,
+      "hbm_copy": {
+        "latency_ms_median": 0.1777,
+        "latency_ms_p5": 0.1758,
+        "latency_ms_p95": 0.179,
+        "throughput_gbps": 3021.56
+      },
+      "offload_to_host": {
+        "latency_ms_median": 9.4115,
+        "latency_ms_p5": 9.4097,
+        "latency_ms_p95": 9.4185,
+        "throughput_gbps": 57.04
+      },
+      "restore_from_host": {
+        "latency_ms_median": 9.6765,
+        "latency_ms_p5": 9.6735,
+        "latency_ms_p95": 9.6855,
+        "throughput_gbps": 55.48
+      },
+      "offload_to_disk": "skipped_too_large",
+      "restore_from_disk": "skipped_too_large"
+    },
+    {
+      "block_size_tokens": 256,
+      "batch_count": 1,
+      "format": "bf16",
+      "bytes_per_block": 33554432,
+      "total_bytes": 33554432,
+      "elements_per_block": 16777216,
+      "hbm_copy": {
+        "latency_ms_median": 0.0148,
+        "latency_ms_p5": 0.0138,
+        "latency_ms_p95": 0.0155,
+        "throughput_gbps": 2274.57
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.6093,
+        "latency_ms_p5": 0.6059,
+        "latency_ms_p95": 0.6169,
+        "throughput_gbps": 55.07
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.627,
+        "latency_ms_p5": 0.6241,
+        "latency_ms_p95": 0.6285,
+        "throughput_gbps": 53.52
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 79.7752,
+        "latency_ms_p5": 79.621,
+        "latency_ms_p95": 104.7163,
+        "throughput_gbps": 0.42
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 32.1343,
+        "latency_ms_p5": 31.7999,
+        "latency_ms_p95": 33.57,
+        "throughput_gbps": 1.04
+      }
+    },
+    {
+      "block_size_tokens": 256,
+      "batch_count": 1,
+      "format": "fp8",
+      "bytes_per_block": 16777216,
+      "total_bytes": 16777216,
+      "elements_per_block": 16777216,
+      "hbm_copy": {
+        "latency_ms_median": 0.0166,
+        "latency_ms_p5": 0.0158,
+        "latency_ms_p95": 0.0207,
+        "throughput_gbps": 1010.19
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.3165,
+        "latency_ms_p5": 0.3129,
+        "latency_ms_p95": 0.3197,
+        "throughput_gbps": 53.01
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.3227,
+        "latency_ms_p5": 0.3219,
+        "latency_ms_p95": 0.3268,
+        "throughput_gbps": 51.99
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 32.7247,
+        "latency_ms_p5": 32.6547,
+        "latency_ms_p95": 50.4697,
+        "throughput_gbps": 0.51
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 4.3778,
+        "latency_ms_p5": 4.3446,
+        "latency_ms_p95": 4.3955,
+        "throughput_gbps": 3.83
+      },
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.0252,
+          "latency_ms_p5": 0.0247,
+          "latency_ms_p95": 0.027
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 0.0513,
+          "latency_ms_p5": 0.0502,
+          "latency_ms_p95": 0.055
+        }
+      }
+    },
+    {
+      "block_size_tokens": 256,
+      "batch_count": 1,
+      "format": "fp4",
+      "bytes_per_block": 8388608,
+      "total_bytes": 8388608,
+      "elements_per_block": 16777216,
+      "hbm_copy": {
+        "latency_ms_median": 0.0132,
+        "latency_ms_p5": 0.0124,
+        "latency_ms_p95": 0.0156,
+        "throughput_gbps": 633.96
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.1667,
+        "latency_ms_p5": 0.1661,
+        "latency_ms_p95": 0.1691,
+        "throughput_gbps": 50.31
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.1713,
+        "latency_ms_p5": 0.1706,
+        "latency_ms_p95": 0.1768,
+        "throughput_gbps": 48.96
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 16.7373,
+        "latency_ms_p5": 16.7107,
+        "latency_ms_p95": 28.2246,
+        "throughput_gbps": 0.5
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 2.1791,
+        "latency_ms_p5": 2.1591,
+        "latency_ms_p95": 2.1958,
+        "throughput_gbps": 3.85
+      },
+      "cast_overhead": {
+        "pack_bf16_to_fp4": {
+          "latency_ms_median": 0.361,
+          "latency_ms_p5": 0.3573,
+          "latency_ms_p95": 0.3676
+        },
+        "unpack_fp4_to_f32": {
+          "latency_ms_median": 0.2737,
+          "latency_ms_p5": 0.2682,
+          "latency_ms_p95": 0.2879
+        }
+      }
+    },
+    {
+      "block_size_tokens": 256,
+      "batch_count": 4,
+      "format": "bf16",
+      "bytes_per_block": 33554432,
+      "total_bytes": 134217728,
+      "elements_per_block": 16777216,
+      "hbm_copy": {
+        "latency_ms_median": 0.0504,
+        "latency_ms_p5": 0.0489,
+        "latency_ms_p95": 0.0593,
+        "throughput_gbps": 2661.36
+      },
+      "offload_to_host": {
+        "latency_ms_median": 2.3711,
+        "latency_ms_p5": 2.3683,
+        "latency_ms_p95": 2.3732,
+        "throughput_gbps": 56.61
+      },
+      "restore_from_host": {
+        "latency_ms_median": 2.4372,
+        "latency_ms_p5": 2.4355,
+        "latency_ms_p95": 2.4414,
+        "throughput_gbps": 55.07
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 257.8837,
+        "latency_ms_p5": 257.4822,
+        "latency_ms_p95": 258.1656,
+        "throughput_gbps": 0.52
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 142.1288,
+        "latency_ms_p5": 141.8534,
+        "latency_ms_p95": 142.7292,
+        "throughput_gbps": 0.94
+      }
+    },
+    {
+      "block_size_tokens": 256,
+      "batch_count": 4,
+      "format": "fp8",
+      "bytes_per_block": 16777216,
+      "total_bytes": 67108864,
+      "elements_per_block": 16777216,
+      "hbm_copy": {
+        "latency_ms_median": 0.0295,
+        "latency_ms_p5": 0.0288,
+        "latency_ms_p95": 0.0314,
+        "throughput_gbps": 2272.1
+      },
+      "offload_to_host": {
+        "latency_ms_median": 1.1955,
+        "latency_ms_p5": 1.1946,
+        "latency_ms_p95": 1.2004,
+        "throughput_gbps": 56.13
+      },
+      "restore_from_host": {
+        "latency_ms_median": 1.2313,
+        "latency_ms_p5": 1.2302,
+        "latency_ms_p95": 1.2325,
+        "throughput_gbps": 54.5
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 159.2619,
+        "latency_ms_p5": 158.9364,
+        "latency_ms_p95": 176.3789,
+        "throughput_gbps": 0.42
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 66.8368,
+        "latency_ms_p5": 66.7639,
+        "latency_ms_p95": 67.8665,
+        "throughput_gbps": 1.0
+      },
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.064,
+          "latency_ms_p5": 0.0619,
+          "latency_ms_p95": 0.0679
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 0.2002,
+          "latency_ms_p5": 0.1989,
+          "latency_ms_p95": 0.2067
+        }
+      }
+    },
+    {
+      "block_size_tokens": 256,
+      "batch_count": 4,
+      "format": "fp4",
+      "bytes_per_block": 8388608,
+      "total_bytes": 33554432,
+      "elements_per_block": 16777216,
+      "hbm_copy": {
+        "latency_ms_median": 0.0147,
+        "latency_ms_p5": 0.0137,
+        "latency_ms_p95": 0.0178,
+        "throughput_gbps": 2277.04
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.6096,
+        "latency_ms_p5": 0.607,
+        "latency_ms_p95": 0.611,
+        "throughput_gbps": 55.04
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.6273,
+        "latency_ms_p5": 0.6236,
+        "latency_ms_p95": 0.6285,
+        "throughput_gbps": 53.49
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 79.346,
+        "latency_ms_p5": 79.2741,
+        "latency_ms_p95": 104.9707,
+        "throughput_gbps": 0.42
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 32.3405,
+        "latency_ms_p5": 31.8364,
+        "latency_ms_p95": 33.4846,
+        "throughput_gbps": 1.04
+      },
+      "cast_overhead": {
+        "pack_bf16_to_fp4": {
+          "latency_ms_median": 1.3997,
+          "latency_ms_p5": 1.3974,
+          "latency_ms_p95": 1.4067
+        },
+        "unpack_fp4_to_f32": {
+          "latency_ms_median": 0.976,
+          "latency_ms_p5": 0.9744,
+          "latency_ms_p95": 0.9771
+        }
+      }
+    },
+    {
+      "block_size_tokens": 256,
+      "batch_count": 16,
+      "format": "bf16",
+      "bytes_per_block": 33554432,
+      "total_bytes": 536870912,
+      "elements_per_block": 16777216,
+      "hbm_copy": {
+        "latency_ms_median": 0.1776,
+        "latency_ms_p5": 0.1761,
+        "latency_ms_p95": 0.1819,
+        "throughput_gbps": 3022.65
+      },
+      "offload_to_host": {
+        "latency_ms_median": 9.4104,
+        "latency_ms_p5": 9.4089,
+        "latency_ms_p95": 9.419,
+        "throughput_gbps": 57.05
+      },
+      "restore_from_host": {
+        "latency_ms_median": 9.6756,
+        "latency_ms_p5": 9.6728,
+        "latency_ms_p95": 9.6771,
+        "throughput_gbps": 55.49
+      },
+      "offload_to_disk": "skipped_too_large",
+      "restore_from_disk": "skipped_too_large"
+    },
+    {
+      "block_size_tokens": 256,
+      "batch_count": 16,
+      "format": "fp8",
+      "bytes_per_block": 16777216,
+      "total_bytes": 268435456,
+      "elements_per_block": 16777216,
+      "hbm_copy": {
+        "latency_ms_median": 0.0907,
+        "latency_ms_p5": 0.0896,
+        "latency_ms_p95": 0.096,
+        "throughput_gbps": 2959.47
+      },
+      "offload_to_host": {
+        "latency_ms_median": 4.718,
+        "latency_ms_p5": 4.7172,
+        "latency_ms_p95": 4.7205,
+        "throughput_gbps": 56.9
+      },
+      "restore_from_host": {
+        "latency_ms_median": 4.8501,
+        "latency_ms_p5": 4.849,
+        "latency_ms_p95": 4.8521,
+        "throughput_gbps": 55.35
+      },
+      "offload_to_disk": "skipped_too_large",
+      "restore_from_disk": "skipped_too_large",
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.218,
+          "latency_ms_p5": 0.2172,
+          "latency_ms_p95": 0.2229
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 0.7675,
+          "latency_ms_p5": 0.7654,
+          "latency_ms_p95": 0.7697
+        }
+      }
+    },
+    {
+      "block_size_tokens": 256,
+      "batch_count": 16,
+      "format": "fp4",
+      "bytes_per_block": 8388608,
+      "total_bytes": 134217728,
+      "elements_per_block": 16777216,
+      "hbm_copy": {
+        "latency_ms_median": 0.0499,
+        "latency_ms_p5": 0.049,
+        "latency_ms_p95": 0.0514,
+        "throughput_gbps": 2692.11
+      },
+      "offload_to_host": {
+        "latency_ms_median": 2.3638,
+        "latency_ms_p5": 2.3635,
+        "latency_ms_p95": 2.3671,
+        "throughput_gbps": 56.78
+      },
+      "restore_from_host": {
+        "latency_ms_median": 2.438,
+        "latency_ms_p5": 2.4365,
+        "latency_ms_p95": 2.4392,
+        "throughput_gbps": 55.05
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 257.9581,
+        "latency_ms_p5": 257.9082,
+        "latency_ms_p95": 258.6025,
+        "throughput_gbps": 0.52
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 152.3638,
+        "latency_ms_p5": 149.4385,
+        "latency_ms_p95": 157.4264,
+        "throughput_gbps": 0.88
+      }
+    },
+    {
+      "block_size_tokens": 256,
+      "batch_count": 64,
+      "format": "bf16",
+      "bytes_per_block": 33554432,
+      "total_bytes": 2147483648,
+      "elements_per_block": 16777216,
+      "hbm_copy": {
+        "latency_ms_median": 0.6672,
+        "latency_ms_p5": 0.6658,
+        "latency_ms_p95": 0.6692,
+        "throughput_gbps": 3218.73
+      },
+      "offload_to_host": {
+        "latency_ms_median": 37.5695,
+        "latency_ms_p5": 37.5652,
+        "latency_ms_p95": 37.5765,
+        "throughput_gbps": 57.16
+      },
+      "restore_from_host": {
+        "latency_ms_median": 38.6345,
+        "latency_ms_p5": 38.6221,
+        "latency_ms_p95": 38.6505,
+        "throughput_gbps": 55.58
+      },
+      "offload_to_disk": "skipped_too_large",
+      "restore_from_disk": "skipped_too_large"
+    },
+    {
+      "block_size_tokens": 256,
+      "batch_count": 64,
+      "format": "fp8",
+      "bytes_per_block": 16777216,
+      "total_bytes": 1073741824,
+      "elements_per_block": 16777216,
+      "hbm_copy": {
+        "latency_ms_median": 0.3402,
+        "latency_ms_p5": 0.3389,
+        "latency_ms_p95": 0.3425,
+        "throughput_gbps": 3155.98
+      },
+      "offload_to_host": {
+        "latency_ms_median": 18.7972,
+        "latency_ms_p5": 18.7959,
+        "latency_ms_p95": 18.8012,
+        "throughput_gbps": 57.12
+      },
+      "restore_from_host": {
+        "latency_ms_median": 19.3294,
+        "latency_ms_p5": 19.3242,
+        "latency_ms_p95": 19.3363,
+        "throughput_gbps": 55.55
+      },
+      "offload_to_disk": "skipped_too_large",
+      "restore_from_disk": "skipped_too_large",
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.8369,
+          "latency_ms_p5": 0.8356,
+          "latency_ms_p95": 0.8397
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 3.0228,
+          "latency_ms_p5": 3.0215,
+          "latency_ms_p95": 3.0247
+        }
+      }
+    },
+    {
+      "block_size_tokens": 256,
+      "batch_count": 64,
+      "format": "fp4",
+      "bytes_per_block": 8388608,
+      "total_bytes": 536870912,
+      "elements_per_block": 16777216,
+      "hbm_copy": {
+        "latency_ms_median": 0.1765,
+        "latency_ms_p5": 0.1761,
+        "latency_ms_p95": 0.1793,
+        "throughput_gbps": 3041.0
+      },
+      "offload_to_host": {
+        "latency_ms_median": 9.4106,
+        "latency_ms_p5": 9.4091,
+        "latency_ms_p95": 9.417,
+        "throughput_gbps": 57.05
+      },
+      "restore_from_host": {
+        "latency_ms_median": 9.677,
+        "latency_ms_p5": 9.6757,
+        "latency_ms_p95": 9.6812,
+        "throughput_gbps": 55.48
+      },
+      "offload_to_disk": "skipped_too_large",
+      "restore_from_disk": "skipped_too_large"
+    },
+    {
+      "block_size_tokens": 256,
+      "batch_count": 256,
+      "format": "fp4",
+      "bytes_per_block": 8388608,
+      "total_bytes": 2147483648,
+      "elements_per_block": 16777216,
+      "hbm_copy": {
+        "latency_ms_median": 0.6674,
+        "latency_ms_p5": 0.6652,
+        "latency_ms_p95": 0.6685,
+        "throughput_gbps": 3217.65
+      },
+      "offload_to_host": {
+        "latency_ms_median": 37.5716,
+        "latency_ms_p5": 37.5671,
+        "latency_ms_p95": 37.5922,
+        "throughput_gbps": 57.16
+      },
+      "restore_from_host": {
+        "latency_ms_median": 38.6297,
+        "latency_ms_p5": 38.6214,
+        "latency_ms_p95": 38.6404,
+        "throughput_gbps": 55.59
+      },
+      "offload_to_disk": "skipped_too_large",
+      "restore_from_disk": "skipped_too_large"
+    },
+    {
+      "block_size_tokens": 1024,
+      "batch_count": 1,
+      "format": "bf16",
+      "bytes_per_block": 134217728,
+      "total_bytes": 134217728,
+      "elements_per_block": 67108864,
+      "hbm_copy": {
+        "latency_ms_median": 0.0495,
+        "latency_ms_p5": 0.0491,
+        "latency_ms_p95": 0.0513,
+        "throughput_gbps": 2711.25
+      },
+      "offload_to_host": {
+        "latency_ms_median": 2.37,
+        "latency_ms_p5": 2.369,
+        "latency_ms_p95": 2.3817,
+        "throughput_gbps": 56.63
+      },
+      "restore_from_host": {
+        "latency_ms_median": 2.4383,
+        "latency_ms_p5": 2.4366,
+        "latency_ms_p95": 2.4402,
+        "throughput_gbps": 55.05
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 257.6944,
+        "latency_ms_p5": 257.6564,
+        "latency_ms_p95": 257.727,
+        "throughput_gbps": 0.52
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 148.5492,
+        "latency_ms_p5": 147.3682,
+        "latency_ms_p95": 148.7537,
+        "throughput_gbps": 0.9
+      }
+    },
+    {
+      "block_size_tokens": 1024,
+      "batch_count": 1,
+      "format": "fp8",
+      "bytes_per_block": 67108864,
+      "total_bytes": 67108864,
+      "elements_per_block": 67108864,
+      "hbm_copy": {
+        "latency_ms_median": 0.03,
+        "latency_ms_p5": 0.0288,
+        "latency_ms_p95": 0.0328,
+        "throughput_gbps": 2238.16
+      },
+      "offload_to_host": {
+        "latency_ms_median": 1.1992,
+        "latency_ms_p5": 1.1936,
+        "latency_ms_p95": 1.2039,
+        "throughput_gbps": 55.96
+      },
+      "restore_from_host": {
+        "latency_ms_median": 1.2315,
+        "latency_ms_p5": 1.2308,
+        "latency_ms_p95": 1.2329,
+        "throughput_gbps": 54.49
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 161.4007,
+        "latency_ms_p5": 161.2923,
+        "latency_ms_p95": 176.3982,
+        "throughput_gbps": 0.42
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 69.4016,
+        "latency_ms_p5": 69.1764,
+        "latency_ms_p95": 69.6393,
+        "throughput_gbps": 0.97
+      },
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.0641,
+          "latency_ms_p5": 0.0624,
+          "latency_ms_p95": 0.068
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 0.2004,
+          "latency_ms_p5": 0.1995,
+          "latency_ms_p95": 0.2045
+        }
+      }
+    },
+    {
+      "block_size_tokens": 1024,
+      "batch_count": 1,
+      "format": "fp4",
+      "bytes_per_block": 33554432,
+      "total_bytes": 33554432,
+      "elements_per_block": 67108864,
+      "hbm_copy": {
+        "latency_ms_median": 0.0146,
+        "latency_ms_p5": 0.0133,
+        "latency_ms_p95": 0.0167,
+        "throughput_gbps": 2304.56
+      },
+      "offload_to_host": {
+        "latency_ms_median": 0.609,
+        "latency_ms_p5": 0.6059,
+        "latency_ms_p95": 0.6129,
+        "throughput_gbps": 55.09
+      },
+      "restore_from_host": {
+        "latency_ms_median": 0.6276,
+        "latency_ms_p5": 0.6245,
+        "latency_ms_p95": 0.6283,
+        "throughput_gbps": 53.46
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 80.7925,
+        "latency_ms_p5": 80.517,
+        "latency_ms_p95": 104.8161,
+        "throughput_gbps": 0.42
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 33.984,
+        "latency_ms_p5": 33.3597,
+        "latency_ms_p95": 34.1578,
+        "throughput_gbps": 0.99
+      },
+      "cast_overhead": {
+        "pack_bf16_to_fp4": {
+          "latency_ms_median": 1.3984,
+          "latency_ms_p5": 1.3956,
+          "latency_ms_p95": 1.4031
+        },
+        "unpack_fp4_to_f32": {
+          "latency_ms_median": 0.9764,
+          "latency_ms_p5": 0.9736,
+          "latency_ms_p95": 0.9774
+        }
+      }
+    },
+    {
+      "block_size_tokens": 1024,
+      "batch_count": 4,
+      "format": "bf16",
+      "bytes_per_block": 134217728,
+      "total_bytes": 536870912,
+      "elements_per_block": 67108864,
+      "hbm_copy": {
+        "latency_ms_median": 0.176,
+        "latency_ms_p5": 0.1756,
+        "latency_ms_p95": 0.1785,
+        "throughput_gbps": 3050.4
+      },
+      "offload_to_host": {
+        "latency_ms_median": 9.4122,
+        "latency_ms_p5": 9.4039,
+        "latency_ms_p95": 9.4187,
+        "throughput_gbps": 57.04
+      },
+      "restore_from_host": {
+        "latency_ms_median": 9.6794,
+        "latency_ms_p5": 9.6774,
+        "latency_ms_p95": 9.6843,
+        "throughput_gbps": 55.47
+      },
+      "offload_to_disk": "skipped_too_large",
+      "restore_from_disk": "skipped_too_large"
+    },
+    {
+      "block_size_tokens": 1024,
+      "batch_count": 4,
+      "format": "fp8",
+      "bytes_per_block": 67108864,
+      "total_bytes": 268435456,
+      "elements_per_block": 67108864,
+      "hbm_copy": {
+        "latency_ms_median": 0.0907,
+        "latency_ms_p5": 0.0899,
+        "latency_ms_p95": 0.0927,
+        "throughput_gbps": 2959.99
+      },
+      "offload_to_host": {
+        "latency_ms_median": 4.7183,
+        "latency_ms_p5": 4.7103,
+        "latency_ms_p95": 4.7248,
+        "throughput_gbps": 56.89
+      },
+      "restore_from_host": {
+        "latency_ms_median": 4.8506,
+        "latency_ms_p5": 4.849,
+        "latency_ms_p95": 4.8544,
+        "throughput_gbps": 55.34
+      },
+      "offload_to_disk": "skipped_too_large",
+      "restore_from_disk": "skipped_too_large",
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.2174,
+          "latency_ms_p5": 0.2161,
+          "latency_ms_p95": 0.2223
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 0.7673,
+          "latency_ms_p5": 0.7646,
+          "latency_ms_p95": 0.7748
+        }
+      }
+    },
+    {
+      "block_size_tokens": 1024,
+      "batch_count": 4,
+      "format": "fp4",
+      "bytes_per_block": 33554432,
+      "total_bytes": 134217728,
+      "elements_per_block": 67108864,
+      "hbm_copy": {
+        "latency_ms_median": 0.0498,
+        "latency_ms_p5": 0.0489,
+        "latency_ms_p95": 0.0544,
+        "throughput_gbps": 2696.43
+      },
+      "offload_to_host": {
+        "latency_ms_median": 2.3723,
+        "latency_ms_p5": 2.3702,
+        "latency_ms_p95": 2.3853,
+        "throughput_gbps": 56.58
+      },
+      "restore_from_host": {
+        "latency_ms_median": 2.4389,
+        "latency_ms_p5": 2.4369,
+        "latency_ms_p95": 2.44,
+        "throughput_gbps": 55.03
+      },
+      "offload_to_disk": {
+        "latency_ms_median": 258.6323,
+        "latency_ms_p5": 258.4992,
+        "latency_ms_p95": 259.1032,
+        "throughput_gbps": 0.52
+      },
+      "restore_from_disk": {
+        "latency_ms_median": 144.773,
+        "latency_ms_p5": 144.6082,
+        "latency_ms_p95": 145.2169,
+        "throughput_gbps": 0.93
+      }
+    },
+    {
+      "block_size_tokens": 1024,
+      "batch_count": 16,
+      "format": "bf16",
+      "bytes_per_block": 134217728,
+      "total_bytes": 2147483648,
+      "elements_per_block": 67108864,
+      "hbm_copy": {
+        "latency_ms_median": 0.6665,
+        "latency_ms_p5": 0.6633,
+        "latency_ms_p95": 0.6689,
+        "throughput_gbps": 3222.05
+      },
+      "offload_to_host": {
+        "latency_ms_median": 37.5735,
+        "latency_ms_p5": 37.5687,
+        "latency_ms_p95": 37.5988,
+        "throughput_gbps": 57.15
+      },
+      "restore_from_host": {
+        "latency_ms_median": 38.6275,
+        "latency_ms_p5": 38.6195,
+        "latency_ms_p95": 38.6337,
+        "throughput_gbps": 55.59
+      },
+      "offload_to_disk": "skipped_too_large",
+      "restore_from_disk": "skipped_too_large"
+    },
+    {
+      "block_size_tokens": 1024,
+      "batch_count": 16,
+      "format": "fp8",
+      "bytes_per_block": 67108864,
+      "total_bytes": 1073741824,
+      "elements_per_block": 67108864,
+      "hbm_copy": {
+        "latency_ms_median": 0.3404,
+        "latency_ms_p5": 0.3394,
+        "latency_ms_p95": 0.342,
+        "throughput_gbps": 3154.2
+      },
+      "offload_to_host": {
+        "latency_ms_median": 18.8012,
+        "latency_ms_p5": 18.7982,
+        "latency_ms_p95": 18.8082,
+        "throughput_gbps": 57.11
+      },
+      "restore_from_host": {
+        "latency_ms_median": 19.3259,
+        "latency_ms_p5": 19.3218,
+        "latency_ms_p95": 19.3468,
+        "throughput_gbps": 55.56
+      },
+      "offload_to_disk": "skipped_too_large",
+      "restore_from_disk": "skipped_too_large",
+      "cast_overhead": {
+        "quantize_bf16_to_fp8": {
+          "latency_ms_median": 0.8368,
+          "latency_ms_p5": 0.834,
+          "latency_ms_p95": 0.8389
+        },
+        "dequant_fp8_to_bf16": {
+          "latency_ms_median": 3.0225,
+          "latency_ms_p5": 3.0218,
+          "latency_ms_p95": 3.0267
+        }
+      }
+    },
+    {
+      "block_size_tokens": 1024,
+      "batch_count": 16,
+      "format": "fp4",
+      "bytes_per_block": 33554432,
+      "total_bytes": 536870912,
+      "elements_per_block": 67108864,
+      "hbm_copy": {
+        "latency_ms_median": 0.1763,
+        "latency_ms_p5": 0.1753,
+        "latency_ms_p95": 0.1799,
+        "throughput_gbps": 3045.97
+      },
+      "offload_to_host": {
+        "latency_ms_median": 9.4127,
+        "latency_ms_p5": 9.4114,
+        "latency_ms_p95": 9.4149,
+        "throughput_gbps": 57.04
+      },
+      "restore_from_host": {
+        "latency_ms_median": 9.6774,
+        "latency_ms_p5": 9.6749,
+        "latency_ms_p95": 9.6866,
+        "throughput_gbps": 55.48
+      },
+      "offload_to_disk": "skipped_too_large",
+      "restore_from_disk": "skipped_too_large"
+    },
+    {
+      "block_size_tokens": 1024,
+      "batch_count": 64,
+      "format": "fp4",
+      "bytes_per_block": 33554432,
+      "total_bytes": 2147483648,
+      "elements_per_block": 67108864,
+      "hbm_copy": {
+        "latency_ms_median": 0.6665,
+        "latency_ms_p5": 0.6652,
+        "latency_ms_p95": 0.6671,
+        "throughput_gbps": 3222.21
+      },
+      "offload_to_host": {
+        "latency_ms_median": 37.5718,
+        "latency_ms_p5": 37.5672,
+        "latency_ms_p95": 37.5884,
+        "throughput_gbps": 57.16
+      },
+      "restore_from_host": {
+        "latency_ms_median": 38.626,
+        "latency_ms_p5": 38.6217,
+        "latency_ms_p95": 38.633,
+        "throughput_gbps": 55.6
+      },
+      "offload_to_disk": "skipped_too_large",
+      "restore_from_disk": "skipped_too_large"
+    }
+  ],
+  "rdma_theoretical": {
+    "note": "No live RDMA measurement; spec-sheet ceilings only",
+    "infiniband_ndr_400g_gbps": 50,
+    "infiniband_hdr_200g_gbps": 25
+  }
+}
