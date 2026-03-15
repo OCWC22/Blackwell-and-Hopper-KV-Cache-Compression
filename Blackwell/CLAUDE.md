@@ -23,9 +23,24 @@ Run this ladder in order:
 - Save benchmark artifacts in `results/` and batch logs in `logs/`.
 - Optimize for latency and quality first, then memory savings.
 
+## Blackwell KV Runtime: Core Thesis
+
+We are not choosing between KVTC and NVFP4. We are building:
+
+- **Tier 0** hot KV in NVFP4 on Blackwell (GPU HBM, active decode)
+- **Tier 1** warm/cold reusable KV in KVTC format (host RAM / SSD / remote)
+- **Promotion path:** KVTC decode → FP8 staging → NVFP4 repack → active cache
+
+Success criteria: NVFP4 + KVTC beats raw offload or plain NVFP4 on HBM efficiency, TTFT/hit-rate, or concurrency — without breaking quality.
+
+Rules: do not replace the inference engine, do not use KVTC as always-hot representation first, keep sink tokens and recent window protected, treat pre-RoPE vs post-RoPE as explicit research question, pay decode/reconstruction cost on promotion not every token.
+
+See `TIERED_KV_ARCHITECTURE.md` for the full architectural specification.
+
 ## What To Read First
 
 - `README.md`
+- `TIERED_KV_ARCHITECTURE.md`
 - `blackwell_kv_hackathon_context.md`
 - `PROMPT_BLACKWELL_NVFP4_KVTC.md`
 - `BLACKWELL_24H_PRD.md`
@@ -46,6 +61,9 @@ Mirrored skills should exist in `.claude/skills/` after running the sync script:
 - `nvfp4-kvtc-runtime`
 - `latency-quality-eval`
 - `nsys-ncu-profiler`
+- `kvtc-codec`
+- `modelopt-nvfp4-quantization`
+- `promotion-policy`
 
 ## Subagents
 
@@ -56,6 +74,9 @@ Claude subagents live under `.claude/agents/`.
 - `kv-cache-researcher`
 - `blackwell-runtime-optimizer`
 - `eval-guard`
+- `kvtc-codec-engineer`
+- `modelopt-quantizer`
+- `promotion-policy-designer`
 
 ## Guidance
 
