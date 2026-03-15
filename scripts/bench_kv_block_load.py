@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
-"""KV block loading cost benchmark — dataset-driven.
+"""KV block offload/restore cost benchmark.
 
-Ingests a coding-agent dataset (claudeset-community by default), grows a
-simulated KV cache by accumulating tokens across sessions, and measures the
-cost to load KV-shaped tensors from HBM, host RAM, and disk at each fill
-level.  Measures BF16 (raw copy), FP8 (copy + cast), and emulated FP4
-(copy + quantize + bit-pack) for every source tier.
+Measures the true cost of offloading and restoring KV cache blocks between
+GPU HBM, host RAM (pinned), and disk across BF16, pre-quantized FP8, and
+emulated pre-packed FP4 formats.
+
+Sweeps block size (tokens) and batch count (blocks per transfer) to show
+how per-block cost and effective throughput scale.  All buffers are
+pre-allocated so the timed path measures pure DMA, not allocation.
 
 Usage:
-    python scripts/bench_kv_block_load.py [OPTIONS]
+    # Quick synthetic test (no dataset, no disk):
+    python scripts/bench_kv_block_load.py --synthetic --skip-disk
 
-    # Quick test with small synthetic fallback (no HuggingFace download):
-    python scripts/bench_kv_block_load.py --synthetic
-
-    # Full run with claudeset-community:
+    # Full run with dataset-driven batch counts:
     python scripts/bench_kv_block_load.py --dataset lelouch0110/claudeset-community
 
 Output:
-    results/kv_block_load_<timestamp>.json
+    results/kv_block_offload_restore_<timestamp>.json
 """
 
 import argparse
@@ -42,7 +42,6 @@ if os.path.isdir(_BW_SCRIPTS):
 try:
     from kv_bench_utils import get_gpu_info, get_cuda_version, percentile
 except ImportError:
-    # Minimal fallbacks
     def get_gpu_info():
         return {"gpu_model": "unknown", "driver_version": "unknown", "gpu_count": 0}
 
@@ -63,45 +62,38 @@ except ImportError:
 
 
 # ---------------------------------------------------------------------------
-# Model configs for KV geometry
+# Model configs for KV block geometry
 # ---------------------------------------------------------------------------
 MODEL_CONFIGS = {
     "llama-3-8b": {"num_layers": 32, "num_kv_heads": 8, "head_dim": 128},
     "llama-3-70b": {"num_layers": 80, "num_kv_heads": 8, "head_dim": 128},
 }
 
-DTYPE_BYTES = {"bf16": 2, "fp8": 1, "fp4": 0.5}
+# Bytes per element for each storage format
+FORMAT_BYTES = {"bf16": 2, "fp8": 1, "fp4": 0.5}
 
 
-def kv_bytes(num_tokens, cfg, dtype_key):
-    """Compute KV block size in bytes for a given token count and model config."""
+def block_bytes(block_tokens, cfg, fmt):
+    """Bytes in one KV block: layers * 2(K+V) * tokens * kv_heads * head_dim * fmt_bytes."""
     return int(
-        cfg["num_layers"]
-        * 2  # K + V
-        * num_tokens
-        * cfg["num_kv_heads"]
-        * cfg["head_dim"]
-        * DTYPE_BYTES[dtype_key]
+        cfg["num_layers"] * 2 * block_tokens
+        * cfg["num_kv_heads"] * cfg["head_dim"] * FORMAT_BYTES[fmt]
     )
 
 
-def kv_elements(num_tokens, cfg):
-    """Total number of elements in a KV tensor (K+V, all layers)."""
-    return cfg["num_layers"] * 2 * num_tokens * cfg["num_kv_heads"] * cfg["head_dim"]
+def block_elements(block_tokens, cfg):
+    """Total scalar elements in one KV block (K+V, all layers)."""
+    return cfg["num_layers"] * 2 * block_tokens * cfg["num_kv_heads"] * cfg["head_dim"]
 
 
 # ---------------------------------------------------------------------------
-# Dataset loading
+# Dataset loading — drives batch count sweep
 # ---------------------------------------------------------------------------
-def load_token_counts(dataset_name):
-    """Load per-session cumulative token counts from a HuggingFace dataset.
-
-    Returns a sorted list of dicts: [{session_id, cumulative_tokens}, ...]
-    """
+def load_session_block_counts(dataset_name, block_tokens, cfg):
+    """Load dataset sessions and compute how many KV blocks each occupies."""
     from datasets import load_dataset
-
     ds = load_dataset(dataset_name, split="train")
-    records = []
+    counts = []
     for row in ds:
         sid = row.get("id") or row.get("session_id") or "unknown"
         stats = row.get("stats", {})
@@ -109,154 +101,218 @@ def load_token_counts(dataset_name):
             stats = json.loads(stats)
         tokens = stats.get("input_tokens", 0)
         if tokens and tokens > 0:
-            records.append({"session_id": str(sid), "cumulative_tokens": int(tokens)})
-    records.sort(key=lambda r: r["cumulative_tokens"])
-    return records
+            nblocks = max(1, math.ceil(tokens / block_tokens))
+            counts.append({"session_id": str(sid), "tokens": int(tokens),
+                           "num_blocks": nblocks})
+    counts.sort(key=lambda r: r["num_blocks"])
+    return counts
 
 
-def synthetic_token_counts():
-    """Generate synthetic token counts for testing without a dataset."""
-    targets = [512, 1024, 4096, 16384, 65536, 131072, 262144]
-    return [
-        {"session_id": f"synthetic_{i}", "cumulative_tokens": t}
-        for i, t in enumerate(targets)
-    ]
-
-
-def select_measurement_points(records, max_points=20):
-    """Select measurement points at roughly logarithmic intervals."""
-    if len(records) <= max_points:
-        return records
-    min_tok = max(records[0]["cumulative_tokens"], 1)
-    max_tok = records[-1]["cumulative_tokens"]
-    log_min, log_max = math.log10(min_tok), math.log10(max_tok)
-    targets = [10 ** (log_min + i * (log_max - log_min) / (max_points - 1))
-               for i in range(max_points)]
-    selected = []
-    used = set()
-    for target in targets:
-        best_idx = min(range(len(records)),
-                       key=lambda i: abs(records[i]["cumulative_tokens"] - target))
-        if best_idx not in used:
-            used.add(best_idx)
-            selected.append(records[best_idx])
-    return selected
+def derive_batch_counts(session_records, base_counts):
+    """Merge fixed batch counts with dataset-derived block counts."""
+    dataset_counts = sorted(set(r["num_blocks"] for r in session_records))
+    # Pick a few representative dataset-derived counts (log-spaced)
+    if len(dataset_counts) > 5:
+        indices = [int(i * (len(dataset_counts) - 1) / 4) for i in range(5)]
+        dataset_counts = sorted(set(dataset_counts[i] for i in indices))
+    all_counts = sorted(set(base_counts) | set(dataset_counts))
+    return all_counts
 
 
 # ---------------------------------------------------------------------------
-# Transfer benchmarks
+# Pre-allocated buffer manager
 # ---------------------------------------------------------------------------
-def bench_hbm_to_hbm(src_tensor, warmup=5, iters=20):
-    """Benchmark HBM-to-HBM copy on the same GPU."""
-    dst = torch.empty_like(src_tensor)
-    # Warmup
-    for _ in range(warmup):
-        dst.copy_(src_tensor)
-    torch.cuda.synchronize()
+class TransferBuffers:
+    """Pre-allocated GPU and pinned-host buffers for clean DMA measurement."""
 
-    start_event = torch.cuda.Event(enable_timing=True)
-    end_event = torch.cuda.Event(enable_timing=True)
-    latencies = []
+    def __init__(self, max_bytes, device):
+        self.device = device
+        self.max_bytes = max_bytes
+        # GPU buffers
+        self.gpu_src = torch.empty(max_bytes, dtype=torch.uint8, device=device)
+        self.gpu_dst = torch.empty(max_bytes, dtype=torch.uint8, device=device)
+        # Pinned host buffer
+        self.host_buf = torch.empty(max_bytes, dtype=torch.uint8,
+                                    pin_memory=True)
+        # Fill with non-zero data to avoid zero-page optimizations
+        self.gpu_src.fill_(42)
+        self.host_buf.fill_(42)
+
+    def gpu_view(self, nbytes, target="src"):
+        buf = self.gpu_src if target == "src" else self.gpu_dst
+        return buf[:nbytes]
+
+    def host_view(self, nbytes):
+        return self.host_buf[:nbytes]
+
+    def cleanup(self):
+        del self.gpu_src, self.gpu_dst, self.host_buf
+        torch.cuda.empty_cache()
+
+
+# ---------------------------------------------------------------------------
+# Timed transfer primitives
+# ---------------------------------------------------------------------------
+def _stats(latencies):
+    return {
+        "latency_ms_median": round(percentile(latencies, 50), 4),
+        "latency_ms_p5": round(percentile(latencies, 5), 4),
+        "latency_ms_p95": round(percentile(latencies, 95), 4),
+    }
+
+
+def bench_gpu_copy(src, dst, warmup, iters):
+    """Benchmark HBM-to-HBM copy with pre-allocated buffers."""
+    for _ in range(warmup):
+        dst.copy_(src)
+    torch.cuda.synchronize()
+    start = torch.cuda.Event(enable_timing=True)
+    end = torch.cuda.Event(enable_timing=True)
+    lats = []
     for _ in range(iters):
-        start_event.record()
-        dst.copy_(src_tensor)
-        end_event.record()
+        start.record()
+        dst.copy_(src)
+        end.record()
         torch.cuda.synchronize()
-        latencies.append(start_event.elapsed_time(end_event))
-    del dst
-    return latencies
+        lats.append(start.elapsed_time(end))
+    return lats
 
 
-def bench_ram_to_hbm(num_bytes, device, warmup=5, iters=20):
-    """Benchmark pinned host RAM to HBM transfer."""
-    num_elements = num_bytes // 2  # BF16 source
-    host_tensor = torch.empty(num_elements, dtype=torch.bfloat16).pin_memory()
-    host_tensor.fill_(1.0)
-
-    # Warmup
+def bench_offload_to_host(gpu_src, host_dst, warmup, iters):
+    """GPU → pinned host (D2H) with pre-allocated buffers."""
     for _ in range(warmup):
-        _ = host_tensor.to(device, non_blocking=False)
+        host_dst.copy_(gpu_src)
     torch.cuda.synchronize()
-
-    start_event = torch.cuda.Event(enable_timing=True)
-    end_event = torch.cuda.Event(enable_timing=True)
-    latencies = []
+    start = torch.cuda.Event(enable_timing=True)
+    end = torch.cuda.Event(enable_timing=True)
+    lats = []
     for _ in range(iters):
-        start_event.record()
-        gpu_tensor = host_tensor.to(device, non_blocking=False)
-        end_event.record()
+        start.record()
+        host_dst.copy_(gpu_src)
+        end.record()
         torch.cuda.synchronize()
-        latencies.append(start_event.elapsed_time(end_event))
-        del gpu_tensor
-    del host_tensor
-    return latencies
+        lats.append(start.elapsed_time(end))
+    return lats
 
 
-def bench_disk_to_hbm(num_bytes, device, warmup=3, iters=10):
-    """Benchmark disk read + H2D transfer."""
-    num_elements = num_bytes // 2  # BF16
-    src = torch.randn(num_elements, dtype=torch.bfloat16)
-
-    with tempfile.NamedTemporaryFile(suffix=".pt", delete=False) as f:
-        tmppath = f.name
-    torch.save(src, tmppath)
-    del src
-
-    # Warmup
+def bench_restore_from_host(host_src, gpu_dst, warmup, iters):
+    """Pinned host → GPU (H2D) with pre-allocated buffers."""
     for _ in range(warmup):
-        t = torch.load(tmppath, weights_only=True).to(device)
-        del t
+        gpu_dst.copy_(host_src)
     torch.cuda.synchronize()
-
-    latencies = []
+    start = torch.cuda.Event(enable_timing=True)
+    end = torch.cuda.Event(enable_timing=True)
+    lats = []
     for _ in range(iters):
-        # Drop page cache attempt (may need root; ignore failures)
+        start.record()
+        gpu_dst.copy_(host_src)
+        end.record()
+        torch.cuda.synchronize()
+        lats.append(start.elapsed_time(end))
+    return lats
+
+
+def bench_offload_to_disk(gpu_src, host_tmp, disk_path, nbytes, warmup, iters):
+    """GPU → pinned host → disk (D2H + raw write)."""
+    # Ensure file exists and is the right size
+    with open(disk_path, "wb") as f:
+        f.write(b"\x00" * nbytes)
+
+    for _ in range(warmup):
+        host_tmp.copy_(gpu_src)
+        torch.cuda.synchronize()
+        fd = os.open(disk_path, os.O_WRONLY)
+        os.write(fd, host_tmp.numpy().tobytes())
+        os.close(fd)
+
+    lats = []
+    for _ in range(iters):
+        torch.cuda.synchronize()
+        t0 = time.perf_counter()
+        host_tmp.copy_(gpu_src)
+        torch.cuda.synchronize()
+        fd = os.open(disk_path, os.O_WRONLY)
+        os.write(fd, host_tmp.numpy().tobytes())
+        os.fsync(fd)
+        os.close(fd)
+        t1 = time.perf_counter()
+        lats.append((t1 - t0) * 1000.0)
+    return lats
+
+
+def bench_restore_from_disk(disk_path, host_tmp, gpu_dst, nbytes, warmup, iters):
+    """Disk → pinned host → GPU (raw read + H2D)."""
+    for _ in range(warmup):
+        # Drop page cache
         try:
-            with open(tmppath, "rb") as f:
-                os.posix_fadvise(f.fileno(), 0, 0, os.POSIX_FADV_DONTNEED)
+            with open(disk_path, "rb") as fh:
+                os.posix_fadvise(fh.fileno(), 0, 0, os.POSIX_FADV_DONTNEED)
+        except (AttributeError, OSError):
+            pass
+        fd = os.open(disk_path, os.O_RDONLY)
+        raw = os.read(fd, nbytes)
+        os.close(fd)
+        host_tmp[:len(raw)].copy_(
+            torch.frombuffer(bytearray(raw), dtype=torch.uint8))
+        gpu_dst.copy_(host_tmp)
+        torch.cuda.synchronize()
+
+    lats = []
+    for _ in range(iters):
+        # Drop page cache
+        try:
+            with open(disk_path, "rb") as fh:
+                os.posix_fadvise(fh.fileno(), 0, 0, os.POSIX_FADV_DONTNEED)
         except (AttributeError, OSError):
             pass
 
         t0 = time.perf_counter()
-        t = torch.load(tmppath, weights_only=True).to(device)
+        fd = os.open(disk_path, os.O_RDONLY)
+        raw = os.read(fd, nbytes)
+        os.close(fd)
+        host_tmp[:len(raw)].copy_(
+            torch.frombuffer(bytearray(raw), dtype=torch.uint8))
+        gpu_dst.copy_(host_tmp)
         torch.cuda.synchronize()
         t1 = time.perf_counter()
-        latencies.append((t1 - t0) * 1000.0)  # ms
-        del t
-
-    os.unlink(tmppath)
-    return latencies
+        lats.append((t1 - t0) * 1000.0)
+    return lats
 
 
-def bench_cast_fp8(src_tensor, warmup=5, iters=20):
-    """Benchmark BF16 → FP8 cast on GPU."""
-    fp8_dtype = torch.float8_e4m3fn
-
+# ---------------------------------------------------------------------------
+# Cast / quantize benchmarks (isolated, on GPU)
+# ---------------------------------------------------------------------------
+def bench_cast_bf16_to_fp8(src_bf16, warmup, iters):
+    """BF16 → FP8 quantize on GPU (pre-offload cast)."""
+    fp8 = torch.float8_e4m3fn
     for _ in range(warmup):
-        _ = src_tensor.to(fp8_dtype)
+        src_bf16.to(fp8)
     torch.cuda.synchronize()
-
-    start_event = torch.cuda.Event(enable_timing=True)
-    end_event = torch.cuda.Event(enable_timing=True)
-    latencies = []
+    s, e = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
+    lats = []
     for _ in range(iters):
-        start_event.record()
-        _ = src_tensor.to(fp8_dtype)
-        end_event.record()
-        torch.cuda.synchronize()
-        latencies.append(start_event.elapsed_time(end_event))
-    return latencies
+        s.record(); src_bf16.to(fp8); e.record()
+        torch.cuda.synchronize(); lats.append(s.elapsed_time(e))
+    return lats
 
 
-def bench_cast_fp4_emulated(src_tensor, group_size=32, warmup=5, iters=20):
-    """Benchmark emulated BF16 → FP4 quantize + bit-pack on GPU.
+def bench_cast_fp8_to_bf16(src_fp8, warmup, iters):
+    """FP8 → BF16 dequantize on GPU (post-restore cast)."""
+    for _ in range(warmup):
+        src_fp8.to(torch.bfloat16)
+    torch.cuda.synchronize()
+    s, e = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
+    lats = []
+    for _ in range(iters):
+        s.record(); src_fp8.to(torch.bfloat16); e.record()
+        torch.cuda.synchronize(); lats.append(s.elapsed_time(e))
+    return lats
 
-    This is an emulation: we quantize to INT4 range per group, compute
-    per-group scales, and pack pairs of 4-bit values into uint8.
-    """
-    flat = src_tensor.reshape(-1).float()
+
+def bench_pack_fp4(src_bf16, group_size, warmup, iters):
+    """BF16 → emulated FP4 pack on GPU (pre-offload)."""
+    flat = src_bf16.reshape(-1).float()
     n = flat.numel()
-    # Pad to group_size multiple
     pad = (group_size - n % group_size) % group_size
     if pad > 0:
         flat = torch.nn.functional.pad(flat, (0, pad))
@@ -264,240 +320,283 @@ def bench_cast_fp4_emulated(src_tensor, group_size=32, warmup=5, iters=20):
     def _pack():
         groups = flat.view(-1, group_size)
         scales = groups.abs().amax(dim=1, keepdim=True).clamp(min=1e-12)
-        # Quantize to [-7, 7] (INT4 range)
-        quantized = (groups / scales * 7.0).round().clamp(-7, 7).to(torch.int8)
-        # Bit-pack pairs into uint8: low nibble + high nibble
-        even = quantized[:, 0::2] & 0x0F
-        odd = (quantized[:, 1::2] & 0x0F) << 4
-        packed = (even | odd).to(torch.uint8)
-        return packed, scales.squeeze(1).to(torch.float16)
+        q = (groups / scales * 7.0).round().clamp(-7, 7).to(torch.int8)
+        even = q[:, 0::2] & 0x0F
+        odd = (q[:, 1::2] & 0x0F) << 4
+        return (even | odd).to(torch.uint8), scales.squeeze(1).half()
 
-    # Warmup
     for _ in range(warmup):
         _pack()
     torch.cuda.synchronize()
-
-    start_event = torch.cuda.Event(enable_timing=True)
-    end_event = torch.cuda.Event(enable_timing=True)
-    latencies = []
+    s, e = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
+    lats = []
     for _ in range(iters):
-        start_event.record()
-        _pack()
-        end_event.record()
-        torch.cuda.synchronize()
-        latencies.append(start_event.elapsed_time(end_event))
-    return latencies
+        s.record(); _pack(); e.record()
+        torch.cuda.synchronize(); lats.append(s.elapsed_time(e))
+    return lats
+
+
+def bench_unpack_fp4(packed, scales, group_size, warmup, iters):
+    """Emulated FP4 unpack → FP32 on GPU (post-restore)."""
+    def _unpack():
+        low = (packed & 0x0F).to(torch.int8)
+        high = ((packed >> 4) & 0x0F).to(torch.int8)
+        # Sign-extend from 4-bit
+        low = (low << 4) >> 4
+        high = (high << 4) >> 4
+        # Interleave
+        n_groups = packed.shape[0]
+        half_gs = packed.shape[1]
+        out = torch.empty(n_groups, half_gs * 2, dtype=torch.float32,
+                          device=packed.device)
+        out[:, 0::2] = low.float()
+        out[:, 1::2] = high.float()
+        return out * scales.unsqueeze(1) / 7.0
+
+    for _ in range(warmup):
+        _unpack()
+    torch.cuda.synchronize()
+    s, e = torch.cuda.Event(enable_timing=True), torch.cuda.Event(enable_timing=True)
+    lats = []
+    for _ in range(iters):
+        s.record(); _unpack(); e.record()
+        torch.cuda.synchronize(); lats.append(s.elapsed_time(e))
+    return lats
 
 
 # ---------------------------------------------------------------------------
-# Main benchmark loop
+# Main benchmark
 # ---------------------------------------------------------------------------
 def run_benchmark(args):
     device = torch.device("cuda:0")
     torch.cuda.set_device(device)
-    model_cfg = MODEL_CONFIGS[args.model]
+    cfg = MODEL_CONFIGS[args.model]
 
-    # Load dataset
-    if args.synthetic:
-        print("Using synthetic token counts (no dataset download)")
-        records = synthetic_token_counts()
-    else:
+    block_sizes = [int(x) for x in args.block_sizes.split(",")]
+    base_batch_counts = [int(x) for x in args.batch_counts.split(",")]
+
+    # Dataset-driven batch counts
+    if not args.synthetic:
         print(f"Loading dataset: {args.dataset}")
-        records = load_token_counts(args.dataset)
-        print(f"  Loaded {len(records)} sessions")
+        session_records = load_session_block_counts(
+            args.dataset, block_sizes[2] if len(block_sizes) > 2 else 16, cfg)
+        print(f"  {len(session_records)} sessions loaded")
+        batch_counts = derive_batch_counts(session_records, base_batch_counts)
+        print(f"  Batch counts (merged): {batch_counts}")
+    else:
+        print("Using synthetic mode (fixed batch counts)")
+        batch_counts = base_batch_counts
+        session_records = []
 
-    points = select_measurement_points(records, max_points=args.max_points)
-    print(f"  Selected {len(points)} measurement points")
-    print(f"  Token range: {points[0]['cumulative_tokens']:,} → "
-          f"{points[-1]['cumulative_tokens']:,}")
+    # Compute max buffer size needed
+    max_block_tok = max(block_sizes)
+    max_batch = max(batch_counts)
+    max_bytes_bf16 = block_bytes(max_block_tok, cfg, "bf16") * max_batch
+    # Cap at 2 GB to avoid OOM
+    max_buf_bytes = min(max_bytes_bf16, 2 * 1024**3)
+
+    print(f"\nMax buffer: {max_buf_bytes / 1e6:.1f} MB")
+    print(f"Block sizes (tokens): {block_sizes}")
+    print(f"Batch counts: {batch_counts}")
 
     gpu_info = get_gpu_info()
-    cuda_ver = get_cuda_version()
+    bufs = TransferBuffers(max_buf_bytes, device)
+
+    # Disk temp file
+    disk_path = None
+    if not args.skip_disk:
+        tmpdir = os.path.join(_REPO_ROOT, "results")
+        os.makedirs(tmpdir, exist_ok=True)
+        disk_path = os.path.join(tmpdir, ".bench_tmp_block.raw")
 
     results = {
-        "benchmark": "kv_block_loading_cost",
+        "benchmark": "kv_block_offload_restore",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "hardware": {
             "gpu_model": gpu_info["gpu_model"],
             "driver_version": gpu_info["driver_version"],
-            "cuda_version": cuda_ver,
+            "cuda_version": get_cuda_version(),
             "gpu_count": gpu_info["gpu_count"],
         },
+        "model_config": {"name": args.model, **cfg},
         "dataset": {
             "name": "synthetic" if args.synthetic else args.dataset,
-            "sessions_used": len(records),
-            "measurement_points": len(points),
-        },
-        "model_config": {
-            "name": args.model,
-            **model_cfg,
+            "sessions": len(session_records),
         },
         "params": {
-            "warmup_iters": args.warmup,
-            "timed_iters": args.iters,
+            "warmup": args.warmup, "iters": args.iters,
+            "block_sizes_tokens": block_sizes,
+            "batch_counts": batch_counts,
             "fp4_group_size": args.group_size,
         },
         "measurements": [],
+        "rdma_theoretical": {
+            "note": "No live RDMA measurement; spec-sheet ceilings only",
+            "infiniband_ndr_400g_gbps": 50,
+            "infiniband_hdr_200g_gbps": 25,
+        },
     }
 
-    for i, pt in enumerate(points):
-        ntok = pt["cumulative_tokens"]
-        n_elem = kv_elements(ntok, model_cfg)
-        bytes_bf16 = kv_bytes(ntok, model_cfg, "bf16")
-        bytes_fp8 = kv_bytes(ntok, model_cfg, "fp8")
-        bytes_fp4 = kv_bytes(ntok, model_cfg, "fp4")
+    total_combos = len(block_sizes) * len(batch_counts) * 3  # 3 formats
+    combo_idx = 0
 
-        print(f"\n[{i+1}/{len(points)}] tokens={ntok:,}  "
-              f"bf16={bytes_bf16/1e6:.1f}MB  fp8={bytes_fp8/1e6:.1f}MB  "
-              f"fp4={bytes_fp4/1e6:.1f}MB")
+    for blk_tok in block_sizes:
+        for batch in batch_counts:
+            for fmt in ["bf16", "fp8", "fp4"]:
+                combo_idx += 1
+                bpb = block_bytes(blk_tok, cfg, fmt)
+                total = bpb * batch
+                elem_per_block = block_elements(blk_tok, cfg)
+                total_elem = elem_per_block * batch
 
-        # Check if tensor fits in GPU memory (leave 2 GB headroom for workspace)
-        free_mem = torch.cuda.mem_get_info(device)[0]
-        # Need ~3x for src + dst + workspace
-        if bytes_bf16 * 3 > free_mem - 2 * 1024**3:
-            print(f"  SKIP: tensor too large for GPU memory "
-                  f"(need {bytes_bf16*3/1e9:.1f}GB, free {free_mem/1e9:.1f}GB)")
-            continue
+                if total > max_buf_bytes:
+                    print(f"[{combo_idx}/{total_combos}] SKIP "
+                          f"blk={blk_tok}tok batch={batch} fmt={fmt} "
+                          f"({total/1e6:.1f}MB > buf cap)")
+                    continue
 
-        # Allocate source tensor on GPU (BF16)
-        src_gpu = torch.randn(n_elem, dtype=torch.bfloat16, device=device)
+                print(f"\n[{combo_idx}/{total_combos}] blk={blk_tok}tok "
+                      f"batch={batch} fmt={fmt}  "
+                      f"per_block={bpb/1e3:.1f}KB  total={total/1e6:.2f}MB")
 
-        measurement = {
-            "cumulative_tokens": ntok,
-            "kv_elements": n_elem,
-            "kv_bytes_bf16": bytes_bf16,
-            "kv_bytes_fp8": bytes_fp8,
-            "kv_bytes_fp4": bytes_fp4,
-            "session_id": pt["session_id"],
-            "transfers": {},
-            "cast_overhead": {},
-        }
+                m = {
+                    "block_size_tokens": blk_tok,
+                    "batch_count": batch,
+                    "format": fmt,
+                    "bytes_per_block": bpb,
+                    "total_bytes": total,
+                    "elements_per_block": elem_per_block,
+                }
 
-        # --- HBM → HBM ---
-        print("  HBM→HBM ...", end="", flush=True)
-        lats = bench_hbm_to_hbm(src_gpu, warmup=args.warmup, iters=args.iters)
-        med = percentile(lats, 50)
-        measurement["transfers"]["hbm_to_hbm"] = {
-            "bf16": {
-                "latency_ms_median": round(med, 4),
-                "latency_ms_p5": round(percentile(lats, 5), 4),
-                "latency_ms_p95": round(percentile(lats, 95), 4),
-                "throughput_gbps": round(bytes_bf16 / (med / 1000) / 1e9, 2)
-                if med > 0 else 0,
-            }
-        }
-        print(f" {med:.3f}ms  {bytes_bf16/(med/1000)/1e9:.1f} GB/s")
+                gpu_src = bufs.gpu_view(total, "src")
+                gpu_dst = bufs.gpu_view(total, "dst")
+                host_v = bufs.host_view(total)
 
-        # --- RAM → HBM ---
-        print("  RAM→HBM ...", end="", flush=True)
-        lats = bench_ram_to_hbm(bytes_bf16, device, warmup=args.warmup,
-                                iters=args.iters)
-        med = percentile(lats, 50)
-        measurement["transfers"]["ram_to_hbm"] = {
-            "bf16": {
-                "latency_ms_median": round(med, 4),
-                "latency_ms_p5": round(percentile(lats, 5), 4),
-                "latency_ms_p95": round(percentile(lats, 95), 4),
-                "throughput_gbps": round(bytes_bf16 / (med / 1000) / 1e9, 2)
-                if med > 0 else 0,
-            }
-        }
-        print(f" {med:.3f}ms  {bytes_bf16/(med/1000)/1e9:.1f} GB/s")
-
-        # --- Disk → HBM ---
-        if not args.skip_disk:
-            print("  Disk→HBM ...", end="", flush=True)
-            # Only run disk bench for blocks up to 256 MB to keep runtime sane
-            if bytes_bf16 <= 256 * 1024 * 1024:
-                lats = bench_disk_to_hbm(bytes_bf16, device, warmup=2,
-                                         iters=max(3, args.iters // 3))
+                # --- HBM ↔ HBM ---
+                lats = bench_gpu_copy(gpu_src, gpu_dst, args.warmup, args.iters)
                 med = percentile(lats, 50)
-                measurement["transfers"]["disk_to_hbm"] = {
-                    "bf16": {
-                        "latency_ms_median": round(med, 4),
-                        "latency_ms_p5": round(percentile(lats, 5), 4),
-                        "latency_ms_p95": round(percentile(lats, 95), 4),
-                        "throughput_gbps": round(
-                            bytes_bf16 / (med / 1000) / 1e9, 2)
+                m["hbm_copy"] = {
+                    **_stats(lats),
+                    "throughput_gbps": round(total / (med / 1000) / 1e9, 2)
+                    if med > 0 else 0,
+                }
+                print(f"  HBM copy: {med:.3f}ms  "
+                      f"{total/(med/1000)/1e9:.1f} GB/s")
+
+                # --- Offload: GPU → host ---
+                lats = bench_offload_to_host(gpu_src, host_v,
+                                             args.warmup, args.iters)
+                med = percentile(lats, 50)
+                m["offload_to_host"] = {
+                    **_stats(lats),
+                    "throughput_gbps": round(total / (med / 1000) / 1e9, 2)
+                    if med > 0 else 0,
+                }
+                print(f"  Offload→host: {med:.3f}ms  "
+                      f"{total/(med/1000)/1e9:.1f} GB/s")
+
+                # --- Restore: host → GPU ---
+                lats = bench_restore_from_host(host_v, gpu_dst,
+                                               args.warmup, args.iters)
+                med = percentile(lats, 50)
+                m["restore_from_host"] = {
+                    **_stats(lats),
+                    "throughput_gbps": round(total / (med / 1000) / 1e9, 2)
+                    if med > 0 else 0,
+                }
+                print(f"  Restore←host: {med:.3f}ms  "
+                      f"{total/(med/1000)/1e9:.1f} GB/s")
+
+                # --- Disk paths ---
+                if not args.skip_disk and total <= 128 * 1024 * 1024:
+                    lats = bench_offload_to_disk(
+                        gpu_src, host_v, disk_path, total,
+                        min(2, args.warmup), max(3, args.iters // 3))
+                    med = percentile(lats, 50)
+                    m["offload_to_disk"] = {
+                        **_stats(lats),
+                        "throughput_gbps": round(total / (med / 1000) / 1e9, 2)
                         if med > 0 else 0,
                     }
-                }
-                print(f" {med:.3f}ms  {bytes_bf16/(med/1000)/1e9:.1f} GB/s")
-            else:
-                print(" SKIP (>256MB)")
-                measurement["transfers"]["disk_to_hbm"] = {"bf16": "skipped_too_large"}
+                    print(f"  Offload→disk: {med:.3f}ms  "
+                          f"{total/(med/1000)/1e9:.1f} GB/s")
 
-        # --- Cast BF16 → FP8 ---
-        print("  Cast BF16→FP8 ...", end="", flush=True)
-        lats = bench_cast_fp8(src_gpu, warmup=args.warmup, iters=args.iters)
-        med = percentile(lats, 50)
-        measurement["cast_overhead"]["bf16_to_fp8"] = {
-            "latency_ms_median": round(med, 4),
-            "latency_ms_p5": round(percentile(lats, 5), 4),
-            "latency_ms_p95": round(percentile(lats, 95), 4),
-            "elements": n_elem,
-        }
-        print(f" {med:.3f}ms")
+                    lats = bench_restore_from_disk(
+                        disk_path, host_v, gpu_dst, total,
+                        min(2, args.warmup), max(3, args.iters // 3))
+                    med = percentile(lats, 50)
+                    m["restore_from_disk"] = {
+                        **_stats(lats),
+                        "throughput_gbps": round(total / (med / 1000) / 1e9, 2)
+                        if med > 0 else 0,
+                    }
+                    print(f"  Restore←disk: {med:.3f}ms  "
+                          f"{total/(med/1000)/1e9:.1f} GB/s")
+                elif not args.skip_disk:
+                    m["offload_to_disk"] = "skipped_too_large"
+                    m["restore_from_disk"] = "skipped_too_large"
 
-        # --- Cast BF16 → FP4 (emulated) ---
-        print("  Cast BF16→FP4(emu) ...", end="", flush=True)
-        # Use a smaller tensor if the full one is too large for the pack op
-        if n_elem <= 128 * 1024 * 1024:  # ~128M elements max for pack
-            lats = bench_cast_fp4_emulated(src_gpu, group_size=args.group_size,
-                                           warmup=args.warmup, iters=args.iters)
-            med = percentile(lats, 50)
-            measurement["cast_overhead"]["bf16_to_fp4_emulated"] = {
-                "latency_ms_median": round(med, 4),
-                "latency_ms_p5": round(percentile(lats, 5), 4),
-                "latency_ms_p95": round(percentile(lats, 95), 4),
-                "elements": n_elem,
-                "group_size": args.group_size,
-            }
-            print(f" {med:.3f}ms")
-        else:
-            print(" SKIP (too large for emulated pack)")
-            measurement["cast_overhead"]["bf16_to_fp4_emulated"] = "skipped_too_large"
+                # --- Cast overhead (format-specific) ---
+                if fmt == "fp8":
+                    src_bf16 = torch.randn(total_elem, dtype=torch.bfloat16,
+                                           device=device)
+                    lats_q = bench_cast_bf16_to_fp8(src_bf16, args.warmup,
+                                                    args.iters)
+                    src_fp8 = src_bf16.to(torch.float8_e4m3fn)
+                    lats_dq = bench_cast_fp8_to_bf16(src_fp8, args.warmup,
+                                                     args.iters)
+                    m["cast_overhead"] = {
+                        "quantize_bf16_to_fp8": _stats(lats_q),
+                        "dequant_fp8_to_bf16": _stats(lats_dq),
+                    }
+                    del src_bf16, src_fp8
+                    print(f"  FP8 quant: {percentile(lats_q,50):.3f}ms  "
+                          f"dequant: {percentile(lats_dq,50):.3f}ms")
 
-        # --- Combined: transfer + cast throughput ---
-        # Effective throughput for FP8 destination = bytes_bf16 transferred + cast
-        hbm_bf16_ms = measurement["transfers"]["hbm_to_hbm"]["bf16"]["latency_ms_median"]
-        fp8_cast_ms = measurement["cast_overhead"]["bf16_to_fp8"]["latency_ms_median"]
-        combined_fp8_ms = hbm_bf16_ms + fp8_cast_ms
-        measurement["transfers"]["hbm_to_hbm"]["fp8_combined"] = {
-            "transfer_plus_cast_ms": round(combined_fp8_ms, 4),
-            "effective_throughput_gbps": round(
-                bytes_fp8 / (combined_fp8_ms / 1000) / 1e9, 2)
-            if combined_fp8_ms > 0 else 0,
-            "note": "BF16 transfer + FP8 cast; effective bytes = FP8 output size",
-        }
+                elif fmt == "fp4" and total_elem <= 64 * 1024 * 1024:
+                    src_bf16 = torch.randn(total_elem, dtype=torch.bfloat16,
+                                           device=device)
+                    lats_q = bench_pack_fp4(src_bf16, args.group_size,
+                                            args.warmup, args.iters)
+                    # Get packed for unpack bench
+                    flat = src_bf16.reshape(-1).float()
+                    pad = (args.group_size - flat.numel() % args.group_size) \
+                        % args.group_size
+                    if pad > 0:
+                        flat = torch.nn.functional.pad(flat, (0, pad))
+                    groups = flat.view(-1, args.group_size)
+                    scales = groups.abs().amax(dim=1, keepdim=True).clamp(min=1e-12)
+                    q = (groups / scales * 7.0).round().clamp(-7, 7).to(torch.int8)
+                    even = q[:, 0::2] & 0x0F
+                    odd = (q[:, 1::2] & 0x0F) << 4
+                    packed = (even | odd).to(torch.uint8)
+                    scales_h = scales.squeeze(1).half()
 
-        ram_entry = measurement["transfers"].get("ram_to_hbm", {}).get("bf16", {})
-        if isinstance(ram_entry, dict) and "latency_ms_median" in ram_entry:
-            ram_bf16_ms = ram_entry["latency_ms_median"]
-            combined_ram_fp8 = ram_bf16_ms + fp8_cast_ms
-            measurement["transfers"]["ram_to_hbm"]["fp8_combined"] = {
-                "transfer_plus_cast_ms": round(combined_ram_fp8, 4),
-                "effective_throughput_gbps": round(
-                    bytes_fp8 / (combined_ram_fp8 / 1000) / 1e9, 2)
-                if combined_ram_fp8 > 0 else 0,
-            }
+                    lats_dq = bench_unpack_fp4(packed, scales_h,
+                                               args.group_size,
+                                               args.warmup, args.iters)
+                    m["cast_overhead"] = {
+                        "pack_bf16_to_fp4": _stats(lats_q),
+                        "unpack_fp4_to_f32": _stats(lats_dq),
+                    }
+                    del src_bf16, flat, groups, scales, q, even, odd, packed, scales_h
+                    print(f"  FP4 pack: {percentile(lats_q,50):.3f}ms  "
+                          f"unpack: {percentile(lats_dq,50):.3f}ms")
 
-        del src_gpu
-        torch.cuda.empty_cache()
+                torch.cuda.empty_cache()
+                results["measurements"].append(m)
 
-        results["measurements"].append(measurement)
+    bufs.cleanup()
 
-    # --- RDMA (theoretical only) ---
-    results["rdma_theoretical"] = {
-        "note": "No live RDMA measurement; spec-sheet ceilings only",
-        "infiniband_ndr_400g_gbps": 50,
-        "infiniband_hdr_200g_gbps": 25,
-    }
+    # Clean up disk temp
+    if disk_path and os.path.exists(disk_path):
+        os.unlink(disk_path)
 
     # Write output
     os.makedirs(os.path.join(_REPO_ROOT, "results"), exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_path = os.path.join(_REPO_ROOT, "results", f"kv_block_load_{ts}.json")
+    out_path = os.path.join(_REPO_ROOT, "results",
+                            f"kv_block_offload_restore_{ts}.json")
     with open(out_path, "w") as f:
         json.dump(results, f, indent=2, default=str)
     print(f"\nResults written to {out_path}")
@@ -505,26 +604,23 @@ def run_benchmark(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="KV block loading cost benchmark (dataset-driven)")
-    parser.add_argument("--dataset", default="lelouch0110/claudeset-community",
-                        help="HuggingFace dataset name")
-    parser.add_argument("--synthetic", action="store_true",
-                        help="Use synthetic token counts (no download)")
-    parser.add_argument("--model", default="llama-3-8b",
-                        choices=list(MODEL_CONFIGS.keys()),
-                        help="Model config for KV geometry")
-    parser.add_argument("--max-points", type=int, default=15,
-                        help="Max measurement points (log-spaced)")
-    parser.add_argument("--warmup", type=int, default=5,
-                        help="Warmup iterations per measurement")
-    parser.add_argument("--iters", type=int, default=20,
-                        help="Timed iterations per measurement")
-    parser.add_argument("--group-size", type=int, default=32,
-                        help="Group size for emulated FP4 quantization")
-    parser.add_argument("--skip-disk", action="store_true",
-                        help="Skip disk benchmarks")
-    args = parser.parse_args()
+    p = argparse.ArgumentParser(
+        description="KV block offload/restore cost benchmark")
+    p.add_argument("--dataset", default="lelouch0110/claudeset-community")
+    p.add_argument("--synthetic", action="store_true",
+                   help="Fixed batch counts, no dataset download")
+    p.add_argument("--model", default="llama-3-8b",
+                   choices=list(MODEL_CONFIGS.keys()))
+    p.add_argument("--block-sizes", default="1,4,16,64,256",
+                   help="Comma-separated block sizes in tokens")
+    p.add_argument("--batch-counts", default="1,4,16,64",
+                   help="Comma-separated batch counts (blocks per transfer)")
+    p.add_argument("--warmup", type=int, default=5)
+    p.add_argument("--iters", type=int, default=20)
+    p.add_argument("--group-size", type=int, default=32,
+                   help="Group size for emulated FP4")
+    p.add_argument("--skip-disk", action="store_true")
+    args = p.parse_args()
     run_benchmark(args)
 
 
