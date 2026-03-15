@@ -332,6 +332,214 @@ Always report:
 - **`hot_expert_share`**
 - **`a2a_time_ms`** where available
 
+## Integrating Block Compute Cost and Transfer Line Rate
+
+### Why this has to be explicit
+
+For a resumed request, restoring a KV block is not free. The system pays for:
+
+- **lookup / match cost** to identify reusable blocks
+- **transfer cost** to move KV bytes from the source tier to the decoder-side GPU memory
+- **onboard / load cost** to place the block into the destination KV structure
+- **sync / wait cost** when decode or prefill reaches a layer whose KV is not yet ready
+
+TensorRT-LLM's disaggregated-serving documentation is explicit that context and generation are separated, that KV cache transfer introduces overhead, and that TensorRT-LLM tries to overlap KV transmission with computation for **multiple independent requests** rather than claiming same-request overlap by default [R6]. TensorRT-LLM's KV Cache Connector documentation is also explicit that the runtime can expose whether a cache load is asynchronous via `get_num_new_matched_tokens(...)->(num_tokens, is_async)`, and that the worker interface supports `start_load_kv`, `wait_for_layer_load`, and `get_finished` for staged background loading into GPU KV tensors [R7].
+
+That means the benchmark should treat **restore cost** as a first-class quantity rather than assuming that a cache hit is free.
+
+### Per-block cost decomposition
+
+For a candidate block `b`, define:
+
+- **`T_lookup(b)`** = time to discover and schedule the block for reuse
+- **`T_transfer(b)`** = time to move the block's bytes across the relevant link
+- **`T_onboard(b)`** = time to place the block into the destination KV cache layout
+- **`T_wait(b)`** = time the execution path waits because the block is still unavailable at a required layer
+- **`T_overlap_credit(b)`** = portion of transfer/load time hidden behind other useful work
+
+Then define:
+
+- **`T_restore_visible(b) = T_lookup(b) + T_transfer(b) + T_onboard(b) + T_wait(b) - T_overlap_credit(b)`**
+
+with the constraint:
+
+- **`T_restore_visible(b) >= 0`**
+
+and:
+
+- **`T_transfer(b) = block_bytes(b) / effective_line_rate_bytes_per_s`**
+
+The critical point is that the benchmark should use **effective line rate**, not theoretical peak bandwidth. TensorRT-LLM documents that KV exchange may use RDMA or NVLink-backed transports in disaggregated serving, but the realized transfer time depends on the end-to-end exchange path, mapping, and concurrency conditions rather than just a hardware headline number [R6].
+
+### Recompute-side cost
+
+For the same candidate block `b`, define:
+
+- **`T_recompute_visible(b)`** = the visible prefill work required to regenerate that block's KV from tokens that are already known but not resident
+
+Operationally, this should be measured, not guessed. In practice, you should estimate it from a controlled microbenchmark that replays the same prefix span and records the incremental prefill time attributable to the missing block span.
+
+### Decision rule
+
+For each block, the restore-vs-recompute decision should be benchmarked as:
+
+- **restore if `T_restore_visible(b) < T_recompute_visible(b)`**
+- **recompute if `T_recompute_visible(b) <= T_restore_visible(b)`**
+
+For long prefixes, a hybrid policy is often the right benchmark target:
+
+- recompute earlier blocks whose incremental prefill cost is still low
+- restore later blocks whose recompute cost exceeds the transfer-plus-wait cost
+
+This is the correct place to integrate both **compute of the block** and **line rate to the decoder**.
+
+## Prefill and Decode Integration
+
+### Prefill-side integration
+
+For a resumed or reuse-enabled request, the benchmark should break the observed prompt-processing cost into:
+
+- **`prefill_recompute_ms`**
+- **`prefill_restore_lookup_ms`**
+- **`prefill_restore_transfer_ms`**
+- **`prefill_restore_onboard_ms`**
+- **`prefill_restore_wait_ms`**
+- **`prefill_hidden_overlap_ms`**
+- **`prefill_visible_restore_ms`**
+
+where:
+
+- **`prefill_visible_restore_ms = prefill_restore_lookup_ms + prefill_restore_transfer_ms + prefill_restore_onboard_ms + prefill_restore_wait_ms - prefill_hidden_overlap_ms`**
+
+This makes TTFT interpretable. TensorRT-LLM's docs explicitly state that aggregated serving causes interference between context and generation, while disaggregated serving can remove that interference at the cost of KV transfer overhead [R6]. The benchmark therefore needs to distinguish:
+
+- TTFT saved by KV reuse
+- TTFT paid back through transfer and load
+
+### Decode-side integration
+
+For decode, the right question is not just whether a block was restored, but whether restore latency became **visible on the token path**.
+
+Track:
+
+- **`decode_restore_transfer_ms`**
+- **`decode_layer_wait_ms`**
+- **`decode_visible_restore_stall_ms`**
+- **`decode_tpot_delta_ms`**
+
+The KV Cache Connector API gives the correct abstraction here: `start_load_kv(stream)` begins background loading on the forward stream, while `wait_for_layer_load(layer_idx, stream)` is the point where the runtime ensures the KV for a specific layer is ready before the model computes that layer [R7].
+
+That means the decode-visible portion should be defined by the time that survives until the **layer-use boundary**:
+
+- **`decode_visible_restore_stall_ms = max(0, restore_ready_time_for_required_layer - layer_compute_ready_time)`**
+
+In other words, if loading finishes before the layer needs the block, the restore is hidden. If not, it inflates TPOT.
+
+## Line-Rate Benchmarking Method
+
+### Measure effective line rate directly
+
+Do not benchmark line rate from a spec sheet. Measure it in the benchmark harness using the actual restore path.
+
+For each restore episode, record:
+
+- **`restored_kv_bytes`**
+- **`restore_transfer_start_ts`**
+- **`restore_transfer_end_ts`**
+- **`effective_line_rate_gbps`**
+
+with:
+
+- **`effective_line_rate_gbps = 8 * restored_kv_bytes / restore_transfer_time_seconds / 1e9`**
+
+Use at least two views:
+
+- **isolated line rate** = measured with minimal concurrent decode pressure
+- **in-situ line rate** = measured while active conversations are decoding
+
+This matters because TensorRT-LLM documents overlap across independent requests in disaggregated serving, so transfer efficiency and visible stall can change under concurrency [R6].
+
+### Measure onboard cost separately from transfer cost
+
+Do not collapse everything into one transfer number. The connector docs distinguish between:
+
+- finding matched tokens and determining whether load is async
+- initiating block load into GPU KV tensors
+- waiting for per-layer readiness [R7]
+
+So break the restore path into:
+
+- **metadata / lookup**
+- **bytes moved**
+- **GPU KV placement / layout cost**
+- **layer wait**
+
+## Recommended New Benchmark Fields
+
+Add fields such as:
+
+- **`block_bytes`**
+- **`restored_block_count`**
+- **`restored_kv_bytes`**
+- **`restore_lookup_ms`**
+- **`restore_transfer_ms`**
+- **`restore_onboard_ms`**
+- **`restore_wait_ms`**
+- **`restore_overlap_credit_ms`**
+- **`restore_visible_ms`**
+- **`effective_line_rate_gbps`**
+- **`recompute_visible_ms`**
+- **`restore_vs_recompute_decision`**
+- **`prefill_visible_restore_ms`**
+- **`decode_visible_restore_stall_ms`**
+- **`tpot_delta_due_to_restore_ms`**
+
+## Recommended Benchmark Views
+
+### 1. Pure transfer view
+
+Plot:
+
+- **X-axis:** restored KV bytes
+- **Y-axis:** effective line rate
+
+This isolates the transport path.
+
+### 2. Restore-vs-recompute frontier
+
+Plot:
+
+- **X-axis:** block position or cumulative restored prefix tokens
+- **Y-axis:** visible restore cost and visible recompute cost
+
+The crossover gives the empirical split point.
+
+### 3. Prefill-facing view
+
+Plot:
+
+- **X-axis:** first-turn prompt bucket
+- **Y-axis:** TTFT decomposition into recompute vs restore-visible components
+
+### 4. Decode-facing view
+
+Plot:
+
+- **X-axis:** active conversations
+- **Y-axis:** p95 TPOT and decode-visible restore stall
+
+This is the chart that tells you whether line-rate and onboarding costs are leaking into the interactive path.
+
+## Important implementation note
+
+TensorRT-LLM's reference KV Cache Connector example is deliberately not production-grade for high-performance restore: it uses synchronous `torch.load` / `torch.save`, and NVIDIA explicitly says real implementations should move this to background threads or async I/O to avoid stalling the GPU [R7].
+
+So if the benchmark uses that example path or any similarly blocking path, the measured line-rate and restore stall should be labeled as:
+
+- **connector-reference-path results**
+
+rather than being over-interpreted as the upper bound of TRT-LLM's architecture.
+
 ## What The Current Repo Already Supports
 
 The current Blackwell harness already gives us a useful starting point:
@@ -434,6 +642,12 @@ Because customer traces are unavailable, the benchmark should be described as a 
   - Retrieved: 2026-03-15
 - **[R5] Auxiliary-Loss-Free Load Balancing Strategy for Mixture-of-Experts**
   - URL: https://arxiv.org/html/2408.15664v1
+  - Retrieved: 2026-03-15
+- **[R6] TensorRT-LLM Disaggregated Serving docs**
+  - URL: https://nvidia.github.io/TensorRT-LLM/features/disagg-serving.html
+  - Retrieved: 2026-03-15
+- **[R7] TensorRT-LLM KV Cache Connector docs**
+  - URL: https://nvidia.github.io/TensorRT-LLM/features/kv-cache-connector.html
   - Retrieved: 2026-03-15
 
 ### Repo-local sources
