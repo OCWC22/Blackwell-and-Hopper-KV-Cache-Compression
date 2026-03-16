@@ -30,7 +30,7 @@ The benchmark infrastructure includes a 45-row eval matrix covering four scenari
 
 2. **HBM supply-demand imbalance** — TrendForce estimates HBM demand surged 130%+ YoY in 2025 with 70%+ growth expected in 2026, straining supply and driving server DRAM prices up 50% [[WinBuzzer](https://winbuzzer.com/2026/01/26/memory-bottleneck-llm-inference-hardware-challenge-xcxwbn/)]. "HBM is getting more expensive per GB and per GB/s over time while standard DDR keeps getting cheaper" — a pricing inversion that favors tiered offload architectures.
 
-3. **Context window expansion outpaces HBM** — Production models now support 1M-2M token contexts (Gemini 2.5 Pro: 2M, Claude Sonnet 4: 1M, Qwen2.5-1M). KV cache for 1M tokens requires ~15GB per user [[Introl Long-Context Guide](https://introl.com/blog/long-context-llm-infrastructure-million-token-windows-guide)]. Even Blackwell Ultra's 288 GB supports only ~19 concurrent 1M-token sessions before accounting for model weights.
+3. **Context window expansion outpaces HBM** — Production models now support 1M+ token contexts (Claude Sonnet 4: 1M [[Anthropic](https://claude.com/blog/1m-context)], Qwen2.5-1M [[Qwen](https://qwenlm.github.io/blog/qwen2.5-1m/)], Gemini models with 1M+ [[Google](https://ai.google.dev/gemini-api/docs/long-context)]). KV cache size is model-dependent: for example, Llama 3.1-405B requires ~61 GB for a 128K-token context [[VAST Dynamo](https://www.vastdata.com/blog/nvidia-dynamo-vast-scalable-optimized-inference)]. Even Blackwell Ultra's 288 GB HBM3e supports only a limited number of concurrent long-context sessions before accounting for model weights.
 
 4. **Reasoning models explode memory pressure** — "As models improve, they have increased in horizon lengths... Deep Research from OpenAI can think for tens of minutes at a time, while GPT-4 mustered mere tens of seconds. As models can now think and reason over a long period of time, the pressure on memory capacity explodes as context lengths regularly exceed hundreds of thousands of tokens" [[SemiAnalysis HBM](https://newsletter.semianalysis.com/p/scaling-the-memory-wall-the-rise-and-roadmap-of-hbm)].
 
@@ -40,7 +40,7 @@ The benchmark infrastructure includes a 45-row eval matrix covering four scenari
 
 7. **KV cache offload is already production-standard** — "Today, KVCache offloading is already commonly used. Nvidia has a framework for this called Dynamo Distributed KVCache Manager... A well-optimized system keeps all currently used KVs in HBM, infrequently used KV in DDR, and very rarely used KV in NVMe" [[SemiAnalysis](https://newsletter.semianalysis.com/p/scaling-the-memory-wall-the-rise-and-roadmap-of-hbm)].
 
-**Implication for this research:** The tiered KV cache architecture (NVFP4 hot tier + host memory warm tier + KVTC cold tier) addresses a structural bottleneck that hardware scaling alone cannot solve. Even with Blackwell's 288 GB HBM, the combination of longer contexts, reasoning models, multi-turn agentic conversations, and HBM supply constraints ensures that offload remains economically and technically necessary.
+**Implication for this research:** The tiered KV cache architecture (NVFP4 hot tier + host memory warm tier + KVTC cold tier) addresses a structural bottleneck that hardware scaling alone cannot solve. Even with Blackwell Ultra's 288 GB HBM3e [[NVIDIA Blackwell Ultra](https://developer.nvidia.com/blog/inside-nvidia-blackwell-ultra-the-chip-powering-the-ai-factory-era/)] — or B200's 180 GB HBM3E [[NVIDIA HGX B200](https://developer.nvidia.com/blog/nvidia-hgx-b200-reduces-embodied-carbon-emissions-intensity/)] — the combination of longer contexts, reasoning models, multi-turn agentic conversations, and HBM supply constraints ensures that offload remains economically and technically necessary.
 
 **Further Research Required.** The recomputation vs. offload tradeoff needs additional investigation for future inference workloads:
 
@@ -56,7 +56,7 @@ The benchmark infrastructure includes a 45-row eval matrix covering four scenari
 
 6. **Dynamic compute-I/O hybrid** — the "Cake" approach of simultaneously computing and loading KV cache [[arXiv:2410.03065](https://arxiv.org/html/2410.03065v1)] could be integrated with tiered KV cache systems.
 
-7. **Attention sink awareness** — vLLM's eviction policy ignores attention sink tokens, which can cause quality degradation [[vLLM Issue #36311](https://github.com/vllm-project/vllm/issues/36311)]. Smart eviction that preserves sinks while recomputing less important tokens needs study.
+7. **Attention sink awareness** — a user-reported concern notes that vLLM's eviction policy may evict attention sink tokens, potentially causing quality degradation [[vLLM Issue #36311](https://github.com/vllm-project/vllm/issues/36311)]. Smart eviction that preserves sinks while recomputing less important tokens needs study.
 
 8. **SGLang HiCache hierarchical policies** — SGLang's HiCache achieves 6× throughput improvement with hierarchical GPU/CPU/disk caching [[SGLang Blog](https://lmsys.org/blog/2025-09-10-sglang-hicache/)]. Integration with NVFP4/KVTC compression needs investigation.
 
